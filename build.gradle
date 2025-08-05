@@ -1,0 +1,52 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.33.0'
+}
+
+group = 'io.kestra.gradle'
+
+gradlePlugin {
+    plugins {
+        injectBomVersions {
+            id = 'io.kestra.gradle.inject-bom-versions'
+            implementationClass = 'io.kestra.gradle.InjectBomVersionsPlugin'
+            displayName = 'Inject BOM Versions'
+            description = 'Injects missing versions for BOM-managed dependencies in POM'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/${project.name}"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/${project.name}"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
