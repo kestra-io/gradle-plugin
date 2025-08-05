@@ -25,6 +25,7 @@ permissions:
 
 jobs:
   main:
+    runs-on: ubuntu-latest
     steps:
       # Check out
       - name: Checkout - Repository
