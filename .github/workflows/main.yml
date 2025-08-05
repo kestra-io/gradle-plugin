@@ -25,7 +25,6 @@ permissions:
 
 jobs:
   main:
-    runs-on: ${{ inputs.runner }}
     steps:
       # Check out
       - name: Checkout - Repository
