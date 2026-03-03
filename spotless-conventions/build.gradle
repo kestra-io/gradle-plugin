@@ -1,0 +1,64 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
+}
+
+group = 'io.kestra.gradle'
+version = '1.0.0-SNAPSHOT'
+
+gradlePlugin {
+    plugins {
+        kestraSpotlessConventions {
+            id = 'io.kestra.gradle.spotless-conventions'
+            implementationClass = 'io.kestra.gradle.KestraSpotlessConventionsPlugin'
+            displayName = 'Kestra Spotless Conventions'
+            description = 'Applies and configures Spotless with Kestra conventions and git hooks'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.diffplug.spotless:spotless-plugin-gradle:6.22.0'
+
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+}
+
+test {
+    useJUnitPlatform()
+}
