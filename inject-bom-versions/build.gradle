@@ -22,6 +22,7 @@ gradlePlugin {
 
 mavenPublishing {
     publishToMavenCentral(true)
+    signAllPublications()
     coordinates(project.group, project.name, project.version)
     pom {
         name = project.name
