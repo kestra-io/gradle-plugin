@@ -7,8 +7,8 @@ plugins {
 }
 
 group = 'io.kestra.gradle'
-version = '1.0.0-SNAPSHOT'
-
+version = rootProject.findProperty('version')
+println "Building ${project.group}:${project.name}:${project.version}"
 gradlePlugin {
     plugins {
         kestraSpotlessConventions {

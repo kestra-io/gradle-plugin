@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'io.kestra.gradle'
-version = '1.0.0'
+version = rootProject.findProperty('version')
 
 gradlePlugin {
     plugins {
