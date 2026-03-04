@@ -34,4 +34,5 @@ jobs:
     with:
       skip-test: ${{ github.event.inputs.skip-test == 'true' }}
       generate-shadowjar: false
+      skip-indexing: true
     secrets: inherit
