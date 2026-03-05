@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 if [ -z "$JAVA_HOME" ] && ! command -v java >/dev/null 2>&1; then
     for path in "$HOME/.sdkman/candidates/java/current/bin" "/usr/lib/jvm/default-java/bin" "/usr/local/bin" "/usr/bin"; do
@@ -17,20 +16,36 @@ if ! command -v java >/dev/null 2>&1; then
 fi
 
 
-staged_files=$(git --no-pager diff --cached --name-only | grep '\.java')
-echo "Staged Java files: $staged_files"
-if [ -n "$staged_files" ]; then
+java_staged_files=$(git --no-pager diff --cached --name-only | grep '\.java')
+if [ -n "$java_staged_files" ]; then
+  echo "Staged Java files: $java_staged_files"
   echo "Running spotlessApply on Java files..."
 
-  for file in $staged_files; do
+  for file in $java_staged_files; do
     ./gradlew --no-build-cache spotlessApply -PtargetFile="$file" --continue
 
   done
 
-  git add $staged_files
+  git add $java_staged_files
 
   echo "spotlessApply completed."
 else
   echo "No Java files modified. Skipping spotlessApply."
 fi
 
+
+
+ui_staged_files=$(git --no-pager diff --cached --name-only | grep -E '(^|/)(ui|ui-ee)(/|$)')
+
+if [ -n "$ui_staged_files" ]; then
+  echo "Staged UI files: $ui_staged_files"
+  if [ -d "ui" ]; then
+      echo "Running lint-staged in ui directory..."
+      cd ui && npx lint-staged
+  fi
+
+  if [ -d "ui-ee" ]; then
+      echo "Running lint-staged in ui directory..."
+      cd ui-ee && npx lint-staged
+  fi
+fi
