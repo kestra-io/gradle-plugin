@@ -18,8 +18,22 @@ class KestraSpotlessConventionsPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        project.plugins.apply('com.diffplug.spotless')
         ClassLoader pluginClassLoader = this.getClass().getClassLoader()
+
+        // Ensure spotless-config files exist during configuration so Spotless doesn't try to read missing files
+        File initialSpotlessDir = project.layout.buildDirectory.dir('spotless-config').get().asFile
+        ['eclipse-kestra.importorder', 'eclipse-java-kestra-style.xml'].each { fileName ->
+            URL resource = pluginClassLoader.getResource("spotless/${fileName}")
+            if (resource != null) {
+                File target = new File(initialSpotlessDir, fileName)
+                target.parentFile.mkdirs()
+                if (!target.exists()) {
+                    target.text = resource.getText('UTF-8')
+                }
+            }
+        }
+
+        project.plugins.apply('com.diffplug.spotless')
 
         def extractSpotlessConfig = project.tasks.register('extractSpotlessConfig') { task ->
             File spotlessDir = project.layout.buildDirectory.dir('spotless-config').get().asFile
@@ -55,6 +69,7 @@ class KestraSpotlessConventionsPlugin implements Plugin<Project> {
                 task.commandLine('sh', '-c', 'chmod +x .github/.hooks/setup_hooks.sh .github/.hooks/pre-commit && ./.github/.hooks/setup_hooks.sh')
             } else {
                 task.enabled = false
+                project.logger.lifecycle('[KestraSpotless] No .git directory found; skipping hook activation to avoid executing git-related commands in non-git projects')
             }
 
             task.doFirst {
