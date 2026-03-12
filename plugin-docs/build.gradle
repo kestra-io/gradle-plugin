@@ -1,0 +1,69 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
+}
+
+group = 'io.kestra.gradle'
+version = rootProject.findProperty('version')
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+gradlePlugin {
+    plugins {
+        pluginJsonSchema {
+            id = 'io.kestra.gradle.plugin-doc'
+            implementationClass = 'io.kestra.gradle.PluginDocPlugin'
+            displayName = 'Kestra Plugin Doc Generator'
+            description = 'Generates docs for Kestra plugin classes at build time'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+}
+
+dependencies {
+    // Kestra core APIs needed at compile time for the DocGenerator.
+    // At runtime, these are provided by the consuming project's classpath.
+    compileOnly enforcedPlatform('io.kestra:platform:1.2.5')
+    compileOnly 'io.kestra:core:1.2.5'
+    compileOnly 'ch.qos.logback:logback-classic:1.5.18'
+    // implementation
+
+}
