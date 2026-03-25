@@ -98,7 +98,7 @@ class KestraSpotlessConventionsPlugin implements Plugin<Project> {
 
                 File spotlessDir = project.layout.buildDirectory.dir('spotless-config').get().asFile
                 javaSpec.importOrderFile(new File(spotlessDir, 'eclipse-kestra.importorder'))
-                javaSpec.eclipse().configFile(new File(spotlessDir, 'eclipse-java-kestra-style.xml'))
+                javaSpec.eclipse('4.34').configFile(new File(spotlessDir, 'eclipse-java-kestra-style.xml'))
 
                 javaSpec.toggleOffOn()
                 javaSpec.removeUnusedImports()
