@@ -51,45 +51,47 @@ class KestraSpotlessConventionsPlugin implements Plugin<Project> {
             }
         }
 
-        project.tasks.register('setupHooks', Exec) { task ->
-            task.group = 'development'
-            File hooksDir = project.file('.github/.hooks')
-            File markerFile = project.layout.buildDirectory.file('setupHooks/.setup_hooks_done').get().asFile
+        if (project == project.rootProject) {
+            project.tasks.register('setupHooks', Exec) { task ->
+                task.group = 'development'
+                File hooksDir = project.file('.github/.hooks')
+                File markerFile = project.layout.buildDirectory.file('setupHooks/.setup_hooks_done').get().asFile
 
-            task.outputs.dir(hooksDir)
-            task.outputs.file(markerFile)
+                task.outputs.dir(hooksDir)
+                task.outputs.file(markerFile)
 
-            task.inputs.property('hooksChecksum', project.providers.provider {
-                ['setup_hooks.sh', 'pre-commit'].collect {
-                    computeChecksum(pluginClassLoader.getResource("spotless/git-hooks/${it}"))
-                }.join(':')
-            })
+                task.inputs.property('hooksChecksum', project.providers.provider {
+                    ['setup_hooks.sh', 'pre-commit'].collect {
+                        computeChecksum(pluginClassLoader.getResource("spotless/git-hooks/${it}"))
+                    }.join(':')
+                })
 
-            if (project.rootProject.file('.git').exists()) {
-                task.commandLine('sh', '-c', 'chmod +x .github/.hooks/setup_hooks.sh .github/.hooks/pre-commit && ./.github/.hooks/setup_hooks.sh')
-            } else {
-                task.enabled = false
-                project.logger.lifecycle('[KestraSpotless] No .git directory found; skipping hook activation to avoid executing git-related commands in non-git projects')
-            }
+                if (project.rootProject.file('.git').exists()) {
+                    task.commandLine('sh', '-c', 'chmod +x .github/.hooks/setup_hooks.sh .github/.hooks/pre-commit && ./.github/.hooks/setup_hooks.sh')
+                } else {
+                    task.enabled = false
+                    project.logger.lifecycle('[KestraSpotless] No .git directory found; skipping hook activation to avoid executing git-related commands in non-git projects')
+                }
 
-            task.doFirst {
-                hooksDir.mkdirs()
-                ['setup_hooks.sh', 'pre-commit'].each { hookName ->
-                    URL url = pluginClassLoader.getResource("spotless/git-hooks/${hookName}")
-                    if (url != null) {
-                        File target = new File(hooksDir, hookName)
-                        target.text = url.getText('UTF-8')
-                        target.setExecutable(true)
+                task.doFirst {
+                    hooksDir.mkdirs()
+                    ['setup_hooks.sh', 'pre-commit'].each { hookName ->
+                        URL url = pluginClassLoader.getResource("spotless/git-hooks/${hookName}")
+                        if (url != null) {
+                            File target = new File(hooksDir, hookName)
+                            target.text = url.getText('UTF-8')
+                            target.setExecutable(true)
+                        }
                     }
+                }
+
+                task.doLast {
+                    markerFile.text = "completed at ${new Date()}"
                 }
             }
 
-            task.doLast {
-                markerFile.text = "completed at ${new Date()}"
-            }
+            project.tasks.named('build') { it.dependsOn('setupHooks') }
         }
-
-        project.tasks.named('build') { it.dependsOn('setupHooks') }
 
         project.extensions.configure(SpotlessExtension) { ext ->
             ext.enforceCheck = false
