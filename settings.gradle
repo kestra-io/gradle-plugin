@@ -2,3 +2,4 @@ rootProject.name = 'gradle-plugin'
 
 include 'inject-bom-versions'
 include 'spotless-conventions'
+include 'plugin-docs'
