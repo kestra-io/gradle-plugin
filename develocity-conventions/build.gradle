@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.gradle:common-custom-user-data-gradle-plugin:2.4.0'
 
     testImplementation gradleTestKit()
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
 }
 
