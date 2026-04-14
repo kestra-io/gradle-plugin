@@ -1,0 +1,68 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.36.0'
+}
+
+group = 'io.kestra.gradle'
+version = rootProject.findProperty('version')
+println "Building ${project.group}:${project.name}:${project.version}"
+
+gradlePlugin {
+    plugins {
+        kestraDevelocityConventions {
+            id = 'io.kestra.gradle.develocity-conventions'
+            implementationClass = 'io.kestra.gradle.DevelocityConventionsPlugin'
+            displayName = 'Kestra Develocity Conventions'
+            description = 'Applies and configures Develocity build scans and remote build cache with Kestra conventions'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+}
+
+dependencies {
+    implementation 'com.gradle:develocity-gradle-plugin:4.4.0'
+    implementation 'com.gradle:common-custom-user-data-gradle-plugin:2.4.0'
+
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+}
+
+test {
+    useJUnitPlatform()
+}
