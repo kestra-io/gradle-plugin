@@ -53,7 +53,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.diffplug.spotless:spotless-plugin-gradle:7.0.4'
+    implementation 'com.diffplug.spotless:spotless-plugin-gradle:8.6.0'
 
     testImplementation gradleTestKit()
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
