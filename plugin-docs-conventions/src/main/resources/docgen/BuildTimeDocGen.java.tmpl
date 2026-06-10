@@ -1,0 +1,97 @@
+package io.kestra.gradle.docgen;
+
+import io.kestra.core.docs.Document;
+import io.kestra.core.docs.DocumentationGenerator;
+import io.kestra.core.docs.JsonSchemaGenerator;
+import io.kestra.core.plugins.DefaultPluginRegistry;
+import io.kestra.core.plugins.PluginRegistry;
+import io.kestra.core.plugins.PluginScanner;
+import io.kestra.core.plugins.RegisteredPlugin;
+import io.kestra.core.serializers.JacksonMapper;
+
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Generates plugin doc/schema at build time and writes them as resources so they end up in the jar.
+ *
+ * Runs with the plugin's own classpath (plugin classes + core + core-ee + dependencies all flat on
+ * one classloader), so EE references like io.kestra.ee.apps.AppSource resolve without the classloader
+ * isolation that makes the OSS CLI fail. The classpath scan sees core and dependency plugins too, so
+ * we keep only this plugin's classes, identified from the ServiceLoader file the annotation processor
+ * already generates.
+ *
+ * args[0] = compiled classes dir (build/classes/java/main)
+ * args[1] = output dir (build/resources/main/META-INF/kestra/docs)
+ */
+public class BuildTimeDocGen {
+    public static void main(String[] args) throws Exception {
+        Path classesDir = Path.of(args[0]);
+        Path outDir = Path.of(args[1]);
+
+        Set<String> ourClasses = new HashSet<>();
+        Path serviceFile = classesDir.resolve("META-INF/services/io.kestra.core.models.Plugin");
+        if (Files.exists(serviceFile)) {
+            for (String line : Files.readAllLines(serviceFile)) {
+                String fqcn = line.trim();
+                if (!fqcn.isEmpty() && !fqcn.startsWith("#")) {
+                    ourClasses.add(fqcn);
+                }
+            }
+        }
+        if (ourClasses.isEmpty()) {
+            System.out.println("[docgen] no plugin classes found, nothing to generate");
+            return;
+        }
+
+        Files.createDirectories(outDir);
+
+        // Build the generator directly instead of booting a Micronaut context: the only injected
+        // dependency is JsonSchemaGenerator, which itself only needs a PluginRegistry. A full context
+        // start would pull in Micronaut beans whose modules aren't on the plugin's classpath.
+        PluginRegistry registry = DefaultPluginRegistry.getOrCreate();
+        JsonSchemaGenerator jsonSchemaGenerator = new JsonSchemaGenerator(registry);
+        DocumentationGenerator generator = new DocumentationGenerator();
+        Field field = DocumentationGenerator.class.getDeclaredField("jsonSchemaGenerator");
+        field.setAccessible(true);
+        field.set(generator, jsonSchemaGenerator);
+
+        // Flat classpath scan: plugin + core + core-ee + deps are all on one classloader.
+        PluginScanner scanner = new PluginScanner(BuildTimeDocGen.class.getClassLoader());
+        RegisteredPlugin scanned = scanner.scan();
+
+        int written = 0;
+        List<Document> documents = generator.generate(scanned);
+        for (Document doc : documents) {
+            String fqcn = fqcnOf(doc.getPath());
+            if (fqcn == null || !ourClasses.contains(fqcn)) {
+                continue;
+            }
+            Files.writeString(outDir.resolve(fqcn + ".md"), doc.getBody(), StandardCharsets.UTF_8);
+            if (doc.getSchema() != null) {
+                Files.write(outDir.resolve(fqcn + ".json"), JacksonMapper.ofJson().writeValueAsBytes(doc.getSchema()));
+            }
+            written++;
+        }
+        System.out.println("[docgen] wrote " + written + " plugin docs to " + outDir);
+    }
+
+    /** Document paths look like "<plugin>/tasks/io.kestra.plugin.x.Foo.md"; pull the FQCN out. */
+    private static String fqcnOf(String path) {
+        if (path == null) {
+            return null;
+        }
+        String name = path.substring(path.lastIndexOf('/') + 1);
+        int dot = name.lastIndexOf('.');
+        if (dot < 0) {
+            return null;
+        }
+        String fqcn = name.substring(0, dot);
+        return fqcn.contains(".") ? fqcn : null;
+    }
+}
