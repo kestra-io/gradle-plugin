@@ -2,6 +2,8 @@ plugins {
     id 'groovy'
     id 'java-gradle-plugin'
     id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.36.0'
 }
 
 group = 'io.kestra.gradle'
@@ -15,6 +17,34 @@ gradlePlugin {
             implementationClass = 'io.kestra.gradle.KestraPluginDocsConventionsPlugin'
             displayName = 'Kestra Plugin Docs Conventions'
             description = 'Generates plugin doc/schema at build time and bundles it into the jar'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
         }
     }
 }
