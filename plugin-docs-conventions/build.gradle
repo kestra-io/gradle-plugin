@@ -1,0 +1,34 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+group = 'io.kestra.gradle'
+version = rootProject.findProperty('version')
+println "Building ${project.group}:${project.name}:${project.version}"
+
+gradlePlugin {
+    plugins {
+        kestraPluginDocsConventions {
+            id = 'io.kestra.gradle.plugin-docs-conventions'
+            implementationClass = 'io.kestra.gradle.KestraPluginDocsConventionsPlugin'
+            displayName = 'Kestra Plugin Docs Conventions'
+            description = 'Generates plugin doc/schema at build time and bundles it into the jar'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+}
+
+test {
+    useJUnitPlatform()
+}
