@@ -1,0 +1,66 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.36.0'
+}
+
+group = 'io.kestra.gradle'
+version = rootProject.findProperty('version')
+println "Building ${project.group}:${project.name}:${project.version}"
+
+gradlePlugin {
+    plugins {
+        pluginDocLint {
+            id = 'io.kestra.gradle.plugin-doc-lint'
+            implementationClass = 'io.kestra.gradle.PluginDocLintPlugin'
+            displayName = 'Kestra Plugin Doc Lint'
+            description = 'Enforces Kestra plugin documentation completeness at build time'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.yaml:snakeyaml:2.3'
+
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+}
+
+test {
+    useJUnitPlatform()
+}
