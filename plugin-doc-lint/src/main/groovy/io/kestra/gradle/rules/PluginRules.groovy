@@ -107,7 +107,9 @@ class PluginRules {
             node.each { k, v ->
                 if (v instanceof String && RuleConstants.looksLikeSecret(k?.toString())) {
                     String value = ((String) v).trim()
-                    if (!value.isEmpty() && !value.contains('secret(')) {
+                    // Only a hardcoded literal is a plain-text secret. Any templated value
+                    // ({{ secret('X') }}, {{ inputs.x }}, ...) is not plain text.
+                    if (!value.isEmpty() && !value.contains('{{')) {
                         found << k.toString()
                     }
                 }

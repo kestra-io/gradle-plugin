@@ -14,7 +14,7 @@ import java.util.regex.Pattern
 class DocRules {
 
     private static final int MIN_LINES = 10
-    private static final Pattern MD_REF = ~/[\w.\/-]+\.md/
+    private static final Pattern MD_REF = ~/[\w.\/-]+\.md(?![\w])/
 
     static List<Rule> rules() {
         return [

@@ -33,15 +33,30 @@ class PluginDocLintPlugin implements Plugin<Project> {
                 task.pluginClasspath.from(main.compileClasspath)
                 task.pluginClasspath.from(main.runtimeClasspath)
                 task.classesDirs.from(main.output.classesDirs)
-                task.resourcesDir.set(firstOrDefault(main.resources.srcDirs, project.file('src/main/resources')))
-                task.sourceDir.set(firstOrDefault(main.java.srcDirs, project.file('src/main/java')))
+                task.resourcesDir.set(resourceRoot(main.resources.srcDirs, project.file('src/main/resources')))
+                task.sourceDir.set(firstExisting(main.java.srcDirs, project.file('src/main/java')))
+                // tracked so resource/source edits re-run the lint, not only class changes
+                task.docInputs.from(main.resources.srcDirs)
+                task.docInputs.from(main.java.srcDirs)
             }
 
             project.tasks.named('check').configure { it.dependsOn(lintTask) }
         }
     }
 
-    private static File firstOrDefault(Set<File> dirs, File fallback) {
-        return dirs == null || dirs.isEmpty() ? fallback : dirs.iterator().next()
+    /** Prefer the resource root that actually holds plugin docs, else the first existing one. */
+    private static File resourceRoot(Set<File> dirs, File fallback) {
+        if (dirs == null || dirs.isEmpty()) {
+            return fallback
+        }
+        return dirs.find { new File(it, 'metadata').exists() || new File(it, 'icons').exists() } ?:
+            dirs.find { it.exists() } ?: fallback
+    }
+
+    private static File firstExisting(Set<File> dirs, File fallback) {
+        if (dirs == null || dirs.isEmpty()) {
+            return fallback
+        }
+        return dirs.find { it.exists() } ?: dirs.iterator().next()
     }
 }

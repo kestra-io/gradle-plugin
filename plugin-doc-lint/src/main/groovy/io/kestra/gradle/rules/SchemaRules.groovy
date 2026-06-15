@@ -17,7 +17,7 @@ class SchemaRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     if (!c.hasSchema) {
                         violations << new Violation('SCHEMA-001', c.fqcn,
-                            "Task/trigger class is missing @Schema. Add @Schema(title = \"...\", description = \"...\").")
+                            "${c.kind} class is missing @Schema. Add @Schema(title = \"...\", description = \"...\").")
                     }
                 }
                 return violations
@@ -80,7 +80,7 @@ class SchemaRules {
     }
 
     static List<ClassInfo> outputs(PluginModel m) {
-        return m.classes.findAll { it.kind == ClassInfo.Kind.OUTPUT && !it.isAbstract && !it.isInterface }
+        return m.classes.findAll { it.isConcreteOutput() }
     }
 
     private static List<FieldInfo> documentedFields(ClassInfo c) {
@@ -89,10 +89,10 @@ class SchemaRules {
     }
 
     private static boolean blank(String value) {
-        return value == null || value.trim().isEmpty()
+        return RuleConstants.blank(value)
     }
 
     private static boolean endsWithPeriod(String value) {
-        return value != null && value.trim().endsWith('.')
+        return RuleConstants.endsWithPeriod(value)
     }
 }

@@ -58,7 +58,7 @@ class PropertyRules {
 
     private static List<ClassInfo> propertyHolders(PluginModel m) {
         List<ClassInfo> holders = new ArrayList<>(m.documentablePlugins())
-        holders.addAll(m.classes.findAll { it.kind == ClassInfo.Kind.OUTPUT && !it.isAbstract && !it.isInterface })
+        holders.addAll(m.classes.findAll { it.isConcreteOutput() })
         return holders
     }
 }

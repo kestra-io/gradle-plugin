@@ -80,6 +80,20 @@ tasks:
     }
 
     @Test
+    void 'PLUGIN-005 allows a value templated from an input'() {
+        def c = task('io.kestra.plugin.acme.Run')
+        c.examples = [example([full: true, code: '''
+id: f
+namespace: company.team
+tasks:
+  - id: run
+    type: io.kestra.plugin.acme.Run
+    password: "{{ inputs.db_password }}"
+'''.stripIndent()])]
+        assertTrue(run('PLUGIN-005', model([c])).isEmpty())
+    }
+
+    @Test
     void 'PLUGIN-005 allows templated secret'() {
         def c = task('io.kestra.plugin.acme.Run')
         c.examples = [example([full: true, code: '''

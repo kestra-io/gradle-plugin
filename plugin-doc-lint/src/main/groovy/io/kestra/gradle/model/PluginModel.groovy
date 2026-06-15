@@ -68,12 +68,13 @@ class PluginModel {
     File iconsDir() { new File(resourceRoot, 'icons') }
     File docDir() { new File(resourceRoot, 'doc') }
 
-    /** Source {@code .java} file for a top-level class, or null when not found. */
+    /** Source {@code .java} file for a class, mapping nested classes to their top-level file. */
     File sourceFileFor(ClassInfo info) {
         if (sourceRoot == null) {
             return null
         }
-        File f = new File(sourceRoot, info.fqcn.replace('.', '/') + '.java')
+        String topLevel = info.fqcn.contains('$') ? info.fqcn.substring(0, info.fqcn.indexOf('$')) : info.fqcn
+        File f = new File(sourceRoot, topLevel.replace('.', '/') + '.java')
         return f.exists() ? f : null
     }
 }

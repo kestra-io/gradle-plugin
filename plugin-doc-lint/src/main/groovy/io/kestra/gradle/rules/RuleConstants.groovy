@@ -35,5 +35,14 @@ class RuleConstants {
         return SECRET_NAME_PATTERNS.any { lower.contains(it) }
     }
 
+    /** Null or whitespace-only. */
+    static boolean blank(Object value) {
+        return value == null || value.toString().trim().isEmpty()
+    }
+
+    static boolean endsWithPeriod(String value) {
+        return value != null && value.trim().endsWith('.')
+    }
+
     private RuleConstants() {}
 }

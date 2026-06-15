@@ -44,6 +44,8 @@ class ClassScanner {
     static class Result {
         List<ClassInfo> classes = []
         Map<String, PackageInfo> packages = [:]
+        /** Classes that could not be loaded or inspected; reported so failures are not silent. */
+        int skipped = 0
     }
 
     Result scan(List<File> classDirs) {
@@ -56,18 +58,22 @@ class ClassScanner {
                 String name = relative[0..-7].replace('/', '.') // strip ".class"
 
                 if (name.endsWith('package-info')) {
-                    packagesWithPackageInfo << name[0..-('.package-info'.length() + 1)]
+                    // Default (root) package has no prefix to strip.
+                    String pkg = (name == 'package-info') ? '' : name[0..-('.package-info'.length() + 1)]
+                    packagesWithPackageInfo << pkg
                     return
                 }
 
                 Class<?> clazz = loadClass(name)
                 if (clazz == null) {
+                    result.skipped++
                     return
                 }
                 try {
                     result.classes << toClassInfo(clazz)
                 } catch (Throwable ignored) {
                     // a class whose dependencies cannot be resolved is skipped, not fatal
+                    result.skipped++
                 }
             }
         }

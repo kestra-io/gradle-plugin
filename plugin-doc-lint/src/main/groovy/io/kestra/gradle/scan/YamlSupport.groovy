@@ -29,15 +29,5 @@ class YamlSupport {
         }
     }
 
-    /** True when the text parses as valid YAML (any node type). */
-    static boolean isValid(String text) {
-        try {
-            new Yaml().load(text)
-            return true
-        } catch (YAMLException ignored) {
-            return false
-        }
-    }
-
     private YamlSupport() {}
 }

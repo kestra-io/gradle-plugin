@@ -12,9 +12,12 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Classpath
+import org.gradle.api.tasks.IgnoreEmptyDirectories
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 /**
@@ -34,6 +37,16 @@ abstract class LintPluginDocsTask extends DefaultTask {
 
     @Internal
     abstract Property<File> getSourceDir()
+
+    /**
+     * The resource and source file trees, tracked so that editing metadata, icons, docs or
+     * source (not just recompiling classes) re-runs the lint. The roots above are kept
+     * {@code @Internal} for path resolution.
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    @IgnoreEmptyDirectories
+    abstract ConfigurableFileCollection getDocInputs()
 
     @Input
     abstract SetProperty<String> getDisabledRules()
@@ -78,6 +91,9 @@ abstract class LintPluginDocsTask extends DefaultTask {
         URLClassLoader loader = new URLClassLoader(urls as URL[], ClassLoader.getPlatformClassLoader())
         try {
             ClassScanner.Result scan = new ClassScanner(loader).scan(classDirs)
+            if (scan.skipped > 0) {
+                logger.warn("[plugin-doc-lint] Skipped ${scan.skipped} class(es) that failed to load; they were not linted.")
+            }
             File resources = resourcesDir.getOrNull()
             return new PluginModel(
                 classes: scan.classes,

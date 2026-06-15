@@ -35,7 +35,7 @@ class MetadataRules {
                 String root = m.rootPackage()
                 List<Violation> violations = []
                 m.packagesWithPlugins().findAll { it != root }.sort().each { pkg ->
-                    String fileName = pkg.tokenize('.').last() + '.yaml'
+                    String fileName = leafYaml(pkg)
                     if (!new File(m.metadataDir(), fileName).exists()) {
                         violations << new Violation('META-002', "metadata/${fileName}",
                             "Missing metadata for subpackage '${pkg}'. Create src/main/resources/metadata/${fileName}.")
@@ -99,7 +99,7 @@ class MetadataRules {
         m.packagesWithPlugins().each { pkg ->
             targets[pkg] = (pkg == root)
                 ? rootMetadataFile(m)
-                : new File(m.metadataDir(), pkg.tokenize('.').last() + '.yaml')
+                : new File(m.metadataDir(), leafYaml(pkg))
         }
         return targets
     }
@@ -111,10 +111,15 @@ class MetadataRules {
         if (index.exists() || root == null) {
             return index
         }
-        return new File(m.metadataDir(), root.tokenize('.').last() + '.yaml')
+        return new File(m.metadataDir(), leafYaml(root))
+    }
+
+    /** Metadata file name for a subpackage: the last package segment plus .yaml. */
+    static String leafYaml(String pkg) {
+        return pkg.tokenize('.').last() + '.yaml'
     }
 
     private static boolean blank(Object value) {
-        return value == null || value.toString().trim().isEmpty()
+        return RuleConstants.blank(value)
     }
 }

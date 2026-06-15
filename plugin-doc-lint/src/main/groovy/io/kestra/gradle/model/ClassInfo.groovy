@@ -37,4 +37,9 @@ class ClassInfo {
         return (kind == Kind.TASK || kind == Kind.TRIGGER
             || kind == Kind.TASK_RUNNER || kind == Kind.LOG_EXPORTER) && !isAbstract && !isInterface
     }
+
+    /** Concrete output class (a task/trigger result type). */
+    boolean isConcreteOutput() {
+        return kind == Kind.OUTPUT && !isAbstract && !isInterface
+    }
 }
