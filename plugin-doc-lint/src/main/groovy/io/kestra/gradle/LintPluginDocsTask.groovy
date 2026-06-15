@@ -5,6 +5,7 @@ import io.kestra.gradle.model.Violation
 import io.kestra.gradle.rules.Rule
 import io.kestra.gradle.rules.Rules
 import io.kestra.gradle.scan.ClassScanner
+import io.kestra.gradle.scan.YamlSupport
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -77,15 +78,25 @@ abstract class LintPluginDocsTask extends DefaultTask {
         URLClassLoader loader = new URLClassLoader(urls as URL[], ClassLoader.getPlatformClassLoader())
         try {
             ClassScanner.Result scan = new ClassScanner(loader).scan(classDirs)
+            File resources = resourcesDir.getOrNull()
             return new PluginModel(
                 classes: scan.classes,
                 packages: scan.packages,
-                resourceRoot: resourcesDir.getOrNull(),
-                sourceRoot: sourceDir.getOrNull()
+                resourceRoot: resources,
+                sourceRoot: sourceDir.getOrNull(),
+                declaredRootPackage: declaredRoot(resources)
             )
         } finally {
             loader.close()
         }
+    }
+
+    private static String declaredRoot(File resources) {
+        if (resources == null) {
+            return null
+        }
+        Map<String, Object> index = YamlSupport.parseMap(new File(resources, 'metadata/index.yaml'))
+        return index?.get('group')?.toString()
     }
 
     private void report(List<Violation> violations) {

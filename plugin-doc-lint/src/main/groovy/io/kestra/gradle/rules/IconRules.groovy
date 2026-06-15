@@ -25,7 +25,7 @@ class IconRules {
             new BaseRule('ICON-002', { PluginModel m ->
                 String root = m.rootPackage()
                 List<Violation> violations = []
-                m.packagesWithTasksOrTriggers().findAll { it != root }.sort().each { pkg ->
+                m.packagesWithPlugins().findAll { it != root }.sort().each { pkg ->
                     String fileName = "${pkg}.svg"
                     if (!new File(m.iconsDir(), fileName).exists()) {
                         violations << new Violation('ICON-002', "icons/${fileName}",

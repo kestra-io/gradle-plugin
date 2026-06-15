@@ -13,6 +13,10 @@ Checks that a Kestra plugin ships complete documentation: subpackage metadata, i
 `@Schema` annotations, `@Plugin` examples, property groups, secret annotations, and
 `package-info`. It catches gaps at build time instead of code review.
 
+Covers tasks, triggers, task runners, log exporters and output classes. Multi-module
+plugins are supported: a submodule may ship a leaf-named metadata file instead of
+`index.yaml`.
+
 Apply it:
 
 ```groovy
@@ -78,8 +82,8 @@ Properties:
 
 | Rule | Check |
 |---|---|
-| PROP-001 | every `@PluginProperty` group is one of `main`, `connection`, `source`, `processing`, `execution`, `destination`, `reliability`, `advanced` |
-| PROP-002 | secret-looking fields (`password`, `apiKey`, `apiToken`, `token`, `privateKey`, `secret`, `credential`) use `@PluginProperty(secret = true)` |
+| PROP-001 | every `@PluginProperty` group is one of `main`, `connection`, `source`, `processing`, `execution`, `destination`, `reliability`, `advanced`, `deprecated` |
+| PROP-002 | fields matching known secret-name patterns (`password`, `apiKey`, `privateKey`, `secret`, `credential`, `apiToken`, `accessToken`, `refreshToken`, ...) use `@PluginProperty(secret = true)`. Matched by concrete credential forms so pagination cursors like `pageToken` are not flagged |
 | PROP-003 | no property is named `version` |
 
 Package structure:

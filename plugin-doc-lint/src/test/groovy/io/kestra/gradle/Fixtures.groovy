@@ -36,11 +36,20 @@ class Fixtures {
         return clazz(fqcn, ClassInfo.Kind.OUTPUT)
     }
 
+    static ClassInfo runner(String fqcn) {
+        return clazz(fqcn, ClassInfo.Kind.TASK_RUNNER)
+    }
+
+    static ClassInfo logExporter(String fqcn) {
+        return clazz(fqcn, ClassInfo.Kind.LOG_EXPORTER)
+    }
+
     static FieldInfo field(String name, Map opts = [:]) {
         FieldInfo f = new FieldInfo()
         f.name = name
         f.isStatic = opts.get('isStatic', false)
         f.isTransient = opts.get('isTransient', false)
+        f.isProperty = opts.get('isProperty', true)
         f.hasSchema = opts.get('hasSchema', false)
         f.schemaTitle = opts.get('schemaTitle')
         f.schemaDescription = opts.get('schemaDescription')
@@ -73,6 +82,7 @@ class Fixtures {
         m.packages = opts.get('packages', [:])
         m.resourceRoot = opts.get('resourceRoot')
         m.sourceRoot = opts.get('sourceRoot')
+        m.declaredRootPackage = opts.get('declaredRootPackage')
         return m
     }
 

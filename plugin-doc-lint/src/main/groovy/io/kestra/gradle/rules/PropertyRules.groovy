@@ -14,7 +14,9 @@ class PropertyRules {
         return [
             new BaseRule('PROP-001', { PluginModel m ->
                 List<Violation> violations = []
-                m.classes.each { ClassInfo c ->
+                // Scoped to task/trigger/output classes: group is meaningful on a task's own
+                // properties, not on nested model POJOs used merely as property types.
+                propertyHolders(m).each { ClassInfo c ->
                     c.fields.findAll { it.hasPluginProperty }.each { FieldInfo f ->
                         if (!RuleConstants.PROPERTY_GROUPS.contains(f.pluginPropertyGroup)) {
                             violations << new Violation('PROP-001', "${c.fqcn}#${f.name}",
@@ -27,8 +29,9 @@ class PropertyRules {
 
             new BaseRule('PROP-002', { PluginModel m ->
                 List<Violation> violations = []
-                m.tasksAndTriggers().each { ClassInfo c ->
-                    c.fields.findAll { !it.isStatic }.each { FieldInfo f ->
+                // Secret masking is an input concern: check plugin inputs, not output results.
+                m.documentablePlugins().each { ClassInfo c ->
+                    c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (RuleConstants.looksLikeSecret(f.name) && !f.pluginPropertySecret) {
                             violations << new Violation('PROP-002', "${c.fqcn}#${f.name}",
                                 "Secret-looking field is not marked secret. Add @PluginProperty(secret = true).")
@@ -40,8 +43,8 @@ class PropertyRules {
 
             new BaseRule('PROP-003', { PluginModel m ->
                 List<Violation> violations = []
-                m.tasksAndTriggers().each { ClassInfo c ->
-                    c.fields.findAll { !it.isStatic }.each { FieldInfo f ->
+                propertyHolders(m).each { ClassInfo c ->
+                    c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (f.name == 'version') {
                             violations << new Violation('PROP-003', "${c.fqcn}#${f.name}",
                                 "Property named 'version' conflicts with Kestra internals. Rename it.")
@@ -51,5 +54,11 @@ class PropertyRules {
                 return violations
             })
         ]
+    }
+
+    private static List<ClassInfo> propertyHolders(PluginModel m) {
+        List<ClassInfo> holders = new ArrayList<>(m.documentablePlugins())
+        holders.addAll(m.classes.findAll { it.kind == ClassInfo.Kind.OUTPUT && !it.isAbstract && !it.isInterface })
+        return holders
     }
 }

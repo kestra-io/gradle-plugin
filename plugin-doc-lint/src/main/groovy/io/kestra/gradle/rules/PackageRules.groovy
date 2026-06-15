@@ -14,7 +14,7 @@ class PackageRules {
         return [
             new BaseRule('PKG-001', { PluginModel m ->
                 List<Violation> violations = []
-                m.packagesWithTasksOrTriggers().sort().each { pkg ->
+                m.packagesWithPlugins().sort().each { pkg ->
                     PackageInfo info = m.packages[pkg]
                     if (info == null || !info.hasPackageInfo) {
                         violations << new Violation('PKG-001', pkg,
@@ -29,7 +29,7 @@ class PackageRules {
 
             new BaseRule('PKG-002', { PluginModel m ->
                 List<Violation> violations = []
-                m.packagesWithTasksOrTriggers().sort().each { pkg ->
+                m.packagesWithPlugins().sort().each { pkg ->
                     PackageInfo info = m.packages[pkg]
                     if (info == null || !info.hasSubGroup) {
                         return
@@ -44,7 +44,7 @@ class PackageRules {
 
             new BaseRule('PKG-003', { PluginModel m ->
                 String root = m.rootPackage()
-                Set<String> pkgs = m.packagesWithTasksOrTriggers()
+                Set<String> pkgs = m.packagesWithPlugins()
                 if (root != null && pkgs.size() > 1 && pkgs.contains(root)) {
                     return [new Violation('PKG-003', root,
                         "Tasks/triggers are placed in both the root package and subpackages. Move root-level tasks into a subpackage.")]

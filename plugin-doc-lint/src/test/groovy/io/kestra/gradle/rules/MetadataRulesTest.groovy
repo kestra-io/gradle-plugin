@@ -81,6 +81,27 @@ body: ""
     }
 
     @Test
+    void 'META-004 passes when tasks live only in a subpackage under the declared root'() {
+        // index.yaml declares the plugin root; the only concrete task is in a subpackage.
+        write('index.yaml', 'group: io.kestra.plugin.acme\nname: acme\ntitle: Acme\ndescription: d\nbody: ""')
+        write('cards.yaml', 'group: io.kestra.plugin.acme.cards\nname: cards\ntitle: Cards\ndescription: d\nbody: ""')
+        def m = model([task('io.kestra.plugin.acme.cards.Create')],
+            [resourceRoot: tmp.toFile(), declaredRootPackage: 'io.kestra.plugin.acme'])
+        assertEquals('io.kestra.plugin.acme', m.rootPackage())
+        assertTrue(run('META-004', m).isEmpty())
+        assertTrue(run('META-002', m).isEmpty())
+    }
+
+    @Test
+    void 'META-001 accepts leaf-named file for a multi-module submodule'() {
+        // Submodule: tasks in a single package, ships <leaf>.yaml, no index.yaml.
+        write('postgresql.yaml', 'group: io.kestra.plugin.jdbc.postgresql\nname: pg\ntitle: Postgres\ndescription: d\nbody: ""')
+        def m = model([task('io.kestra.plugin.jdbc.postgresql.Query')], [resourceRoot: tmp.toFile()])
+        assertTrue(run('META-001', m).isEmpty())
+        assertTrue(run('META-004', m).isEmpty())
+    }
+
+    @Test
     void 'META-004 flags group mismatch'() {
         write('index.yaml', 'group: io.kestra.plugin.WRONG\nname: a\ntitle: A\ndescription: d\nbody: ""')
         def m = modelFor([task('io.kestra.plugin.acme.Run')])

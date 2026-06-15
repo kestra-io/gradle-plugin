@@ -5,7 +5,7 @@ package io.kestra.gradle.model
  * the class is a task, trigger, output, or unrelated, based on its type hierarchy.
  */
 class ClassInfo {
-    enum Kind { TASK, TRIGGER, OUTPUT, OTHER }
+    enum Kind { TASK, TRIGGER, TASK_RUNNER, LOG_EXPORTER, OUTPUT, OTHER }
 
     String fqcn
     String packageName
@@ -30,5 +30,11 @@ class ClassInfo {
     /** Concrete (registrable) task or trigger: abstract bases are not plugin entry points. */
     boolean isConcreteTaskOrTrigger() {
         return isTaskOrTrigger() && !isAbstract && !isInterface
+    }
+
+    /** Any documentable plugin entry point: task, trigger, task runner or log exporter. */
+    boolean isDocumentablePlugin() {
+        return (kind == Kind.TASK || kind == Kind.TRIGGER
+            || kind == Kind.TASK_RUNNER || kind == Kind.LOG_EXPORTER) && !isAbstract && !isInterface
     }
 }

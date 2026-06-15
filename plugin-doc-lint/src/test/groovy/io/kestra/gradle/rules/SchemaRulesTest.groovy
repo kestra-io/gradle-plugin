@@ -45,6 +45,26 @@ class SchemaRulesTest {
     }
 
     @Test
+    void 'SCHEMA-001 covers task runners and log exporters'() {
+        def runner = runner('io.kestra.plugin.acme.runner.MyRunner')
+        def exporter = logExporter('io.kestra.plugin.acme.logs.MyExporter')
+        def v = run('SCHEMA-001', model([runner, exporter]))
+        assertEquals(2, v.size())
+    }
+
+    @Test
+    void 'SCHEMA-003 ignores non-property internal fields'() {
+        def c = task('io.kestra.plugin.acme.Run')
+        c.fields = [
+            field('format'),
+            field('isActive', [isProperty: false])
+        ]
+        def v = run('SCHEMA-003', model([c]))
+        assertEquals(1, v.size())
+        assertTrue(v[0].location.endsWith('#format'))
+    }
+
+    @Test
     void 'SCHEMA-004 flags undocumented output field'() {
         def out = output('io.kestra.plugin.acme.Run$Output')
         out.fields = [field('uri')]

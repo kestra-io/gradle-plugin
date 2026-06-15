@@ -7,7 +7,7 @@ class RuleConstants {
     /** Allowed {@code @PluginProperty(group = ...)} values (PROP-001). */
     static final Set<String> PROPERTY_GROUPS = [
         'main', 'connection', 'source', 'processing',
-        'execution', 'destination', 'reliability', 'advanced'
+        'execution', 'destination', 'reliability', 'advanced', 'deprecated'
     ] as Set
 
     /** Allowed {@code @PluginSubGroup} categories (PKG-002). */
@@ -15,9 +15,16 @@ class RuleConstants {
         'AI', 'BUSINESS', 'CLOUD', 'CORE', 'DATA', 'INFRASTRUCTURE'
     ] as Set
 
-    /** Field-name fragments that flag a property as secret (PROP-002, PLUGIN-005). */
+    /**
+     * Field-name fragments that flag a property as secret (PROP-002, PLUGIN-005). Based on the
+     * issue's list (password, apiKey, apiToken, token, privateKey, secret, credential), with the
+     * bare "token" replaced by concrete credential-token forms. Plain substring matching of bare
+     * "token" matches non-secret names like "pageToken"/"nextPageToken"; the concrete forms catch
+     * apiToken/accessToken/refreshToken without that false positive.
+     */
     static final List<String> SECRET_NAME_PATTERNS = [
-        'password', 'apikey', 'apitoken', 'token', 'privatekey', 'secret', 'credential'
+        'password', 'apikey', 'privatekey', 'secret', 'credential',
+        'apitoken', 'accesstoken', 'refreshtoken', 'authtoken', 'bearertoken', 'sessiontoken'
     ]
 
     static boolean looksLikeSecret(String fieldName) {

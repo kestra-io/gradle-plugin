@@ -23,11 +23,15 @@ class ClassScanner {
     static final String PLUGIN_PROPERTY = 'io.kestra.core.models.annotations.PluginProperty'
     static final String PLUGIN_SUBGROUP = 'io.kestra.core.models.annotations.PluginSubGroup'
 
+    static final String JSON_IGNORE = 'com.fasterxml.jackson.annotation.JsonIgnore'
+
     static final String TASK = 'io.kestra.core.models.tasks.Task'
     static final List<String> TRIGGER = [
         'io.kestra.core.models.triggers.AbstractTrigger',
         'io.kestra.core.models.triggers.Trigger'
     ]
+    static final String TASK_RUNNER = 'io.kestra.core.models.tasks.runners.TaskRunner'
+    static final String LOG_EXPORTER = 'io.kestra.core.models.tasks.logs.LogExporter'
     static final String OUTPUT = 'io.kestra.core.models.tasks.Output'
 
     final ClassLoader loader
@@ -114,7 +118,7 @@ class ClassScanner {
         }
 
         clazz.declaredFields.findAll { !it.synthetic }.each { Field field ->
-            info.fields << toFieldInfo(field)
+            info.fields << toFieldInfo(clazz, field)
         }
 
         return info
@@ -134,11 +138,12 @@ class ClassScanner {
         return example
     }
 
-    private static FieldInfo toFieldInfo(Field field) {
+    private static FieldInfo toFieldInfo(Class<?> owner, Field field) {
         FieldInfo info = new FieldInfo()
         info.name = field.name
         info.isStatic = Modifier.isStatic(field.modifiers)
         info.isTransient = Modifier.isTransient(field.modifiers)
+        info.isProperty = isProperty(owner, field)
 
         Annotation schema = find(field, SCHEMA)
         if (schema != null) {
@@ -201,10 +206,41 @@ class ClassScanner {
         if (TRIGGER.any { isAssignableToName(clazz, it) }) {
             return ClassInfo.Kind.TRIGGER
         }
+        if (isAssignableToName(clazz, TASK_RUNNER)) {
+            return ClassInfo.Kind.TASK_RUNNER
+        }
+        if (isAssignableToName(clazz, LOG_EXPORTER)) {
+            return ClassInfo.Kind.LOG_EXPORTER
+        }
         if (isAssignableToName(clazz, OUTPUT)) {
             return ClassInfo.Kind.OUTPUT
         }
         return ClassInfo.Kind.OTHER
+    }
+
+    /**
+     * A field is a documented property when it is serialized: public, or exposed through a
+     * public getter, and not {@code @JsonIgnore}. Internal state fields suppressed with Lombok
+     * {@code @Getter(AccessLevel.NONE)} have no getter, so they are excluded.
+     */
+    private static boolean isProperty(Class<?> owner, Field field) {
+        if (find(field, JSON_IGNORE) != null) {
+            return false
+        }
+        if (Modifier.isPublic(field.modifiers)) {
+            return true
+        }
+        return hasPublicAccessor(owner, field.name)
+    }
+
+    private static boolean hasPublicAccessor(Class<?> owner, String fieldName) {
+        String capitalized = fieldName.length() > 0 ? fieldName[0].toUpperCase() + fieldName.substring(1) : fieldName
+        Set<String> candidates = ["get${capitalized}".toString(), "is${capitalized}".toString(), fieldName] as Set
+        try {
+            return owner.methods.any { it.parameterCount == 0 && candidates.contains(it.name) }
+        } catch (Throwable ignored) {
+            return false
+        }
     }
 
     /** Walk the type hierarchy by name so we never need the Kestra classes on our classpath. */

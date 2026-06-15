@@ -24,8 +24,14 @@ class DocRulesTest {
         return model(classes, [resourceRoot: tmp.toFile()])
     }
 
+    /** A root-owning module ships index.yaml; DOC-001 only applies there. */
+    private void ownsRoot() {
+        new File(dir('metadata'), 'index.yaml').text = 'group: io.kestra.plugin.acme'
+    }
+
     @Test
     void 'DOC-001 flags missing root how-to'() {
+        ownsRoot()
         def m = modelFor([task('io.kestra.plugin.acme.Run')])
         def v = run('DOC-001', m)
         assertEquals(1, v.size())
@@ -34,8 +40,17 @@ class DocRulesTest {
 
     @Test
     void 'DOC-001 passes when root how-to exists'() {
+        ownsRoot()
         new File(dir('doc'), 'io.kestra.plugin.acme.md').text = 'docs'
         def m = modelFor([task('io.kestra.plugin.acme.Run')])
+        assertTrue(run('DOC-001', m).isEmpty())
+    }
+
+    @Test
+    void 'DOC-001 skips a submodule that does not own the root'() {
+        // No index.yaml: this is a submodule, root how-to lives in the core module.
+        new File(dir('metadata'), 'postgresql.yaml').text = 'group: io.kestra.plugin.jdbc.postgresql'
+        def m = modelFor([task('io.kestra.plugin.jdbc.postgresql.Query')])
         assertTrue(run('DOC-001', m).isEmpty())
     }
 

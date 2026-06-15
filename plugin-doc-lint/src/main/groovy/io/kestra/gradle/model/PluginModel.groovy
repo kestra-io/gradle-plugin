@@ -11,23 +11,41 @@ class PluginModel {
     File resourceRoot
     File sourceRoot
 
+    /**
+     * The {@code group} declared in {@code metadata/index.yaml}, populated when the model is
+     * built. It is the authoritative plugin root: tasks may live only in a subpackage, so the
+     * common-prefix heuristic alone would mistake the subpackage for the root.
+     */
+    String declaredRootPackage
+
     List<ClassInfo> tasksAndTriggers() {
         return classes.findAll { it.isConcreteTaskOrTrigger() }
     }
 
-    /** Packages that contain at least one concrete task or trigger. */
-    Set<String> packagesWithTasksOrTriggers() {
-        return tasksAndTriggers().collect { it.packageName }.toSet()
+    /** Concrete task, trigger, task runner and log exporter classes. */
+    List<ClassInfo> documentablePlugins() {
+        return classes.findAll { it.isDocumentablePlugin() }
+    }
+
+    /** Packages that contain at least one documentable plugin class. */
+    Set<String> packagesWithPlugins() {
+        return documentablePlugins().collect { it.packageName }.toSet()
     }
 
     /**
      * Root package: the longest common dot-delimited prefix across all packages that
-     * contain a task or trigger. For a single-package plugin this is that package.
+     * contain a plugin class. For a single-package plugin this is that package.
      */
     String rootPackage() {
-        Set<String> pkgs = packagesWithTasksOrTriggers()
+        Set<String> pkgs = packagesWithPlugins()
         if (pkgs.isEmpty()) {
             return null
+        }
+        // Prefer the declared group when every task package sits under it: this is the real
+        // plugin root even when all concrete tasks live in a single subpackage.
+        if (declaredRootPackage != null && !declaredRootPackage.trim().isEmpty()
+            && pkgs.every { it == declaredRootPackage || it.startsWith(declaredRootPackage + '.') }) {
+            return declaredRootPackage
         }
         if (pkgs.size() == 1) {
             return pkgs.first()

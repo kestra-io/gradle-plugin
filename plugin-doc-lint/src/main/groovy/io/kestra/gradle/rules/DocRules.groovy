@@ -23,6 +23,11 @@ class DocRules {
                 if (root == null) {
                     return []
                 }
+                // Only the module that owns the root (ships index.yaml) carries the root how-to.
+                // Submodules of a multi-module plugin keep it in the core module.
+                if (!new File(m.metadataDir(), 'index.yaml').exists()) {
+                    return []
+                }
                 String fileName = "${root}.md"
                 if (!new File(m.docDir(), fileName).exists()) {
                     return [new Violation('DOC-001', "doc/${fileName}",

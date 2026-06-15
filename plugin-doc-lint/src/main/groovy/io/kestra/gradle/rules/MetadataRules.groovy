@@ -21,10 +21,12 @@ class MetadataRules {
                 if (root == null) {
                     return []
                 }
-                File idx = new File(m.metadataDir(), 'index.yaml')
-                if (!idx.exists()) {
+                // A submodule of a multi-module plugin ships <leaf>.yaml instead of index.yaml
+                // (the root index.yaml lives in the core module). Accept either.
+                if (!rootMetadataFile(m).exists()) {
+                    String leaf = root.tokenize('.').last()
                     return [new Violation('META-001', 'metadata/index.yaml',
-                        "Missing root metadata file. Create src/main/resources/metadata/index.yaml for package '${root}'.")]
+                        "Missing root metadata file. Create src/main/resources/metadata/index.yaml (or ${leaf}.yaml for a submodule) for package '${root}'.")]
                 }
                 return []
             }),
@@ -32,7 +34,7 @@ class MetadataRules {
             new BaseRule('META-002', { PluginModel m ->
                 String root = m.rootPackage()
                 List<Violation> violations = []
-                m.packagesWithTasksOrTriggers().findAll { it != root }.sort().each { pkg ->
+                m.packagesWithPlugins().findAll { it != root }.sort().each { pkg ->
                     String fileName = pkg.tokenize('.').last() + '.yaml'
                     if (!new File(m.metadataDir(), fileName).exists()) {
                         violations << new Violation('META-002', "metadata/${fileName}",
@@ -90,15 +92,26 @@ class MetadataRules {
         ]
     }
 
-    /** Map each task/trigger package to the metadata file expected to describe it. */
+    /** Map each plugin package to the metadata file expected to describe it. */
     static Map<String, File> metadataTargets(PluginModel m) {
         String root = m.rootPackage()
         Map<String, File> targets = [:]
-        m.packagesWithTasksOrTriggers().each { pkg ->
-            String fileName = (pkg == root) ? 'index.yaml' : pkg.tokenize('.').last() + '.yaml'
-            targets[pkg] = new File(m.metadataDir(), fileName)
+        m.packagesWithPlugins().each { pkg ->
+            targets[pkg] = (pkg == root)
+                ? rootMetadataFile(m)
+                : new File(m.metadataDir(), pkg.tokenize('.').last() + '.yaml')
         }
         return targets
+    }
+
+    /** The root package's metadata file: index.yaml when present, else the leaf-named file. */
+    static File rootMetadataFile(PluginModel m) {
+        File index = new File(m.metadataDir(), 'index.yaml')
+        String root = m.rootPackage()
+        if (index.exists() || root == null) {
+            return index
+        }
+        return new File(m.metadataDir(), root.tokenize('.').last() + '.yaml')
     }
 
     private static boolean blank(Object value) {

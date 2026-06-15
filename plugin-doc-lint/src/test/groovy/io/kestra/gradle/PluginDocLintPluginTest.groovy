@@ -60,6 +60,8 @@ class PluginDocLintPluginTest {
             'package io.kestra.core.models.tasks; public interface Task {}'
         file('src/main/java/io/kestra/core/models/tasks/Output.java').text =
             'package io.kestra.core.models.tasks; public interface Output {}'
+        file('src/main/java/io/kestra/core/models/tasks/runners/TaskRunner.java').text =
+            'package io.kestra.core.models.tasks.runners; public abstract class TaskRunner {}'
         file('src/main/java/io/swagger/v3/oas/annotations/media/Schema.java').text = '''
             package io.swagger.v3.oas.annotations.media;
             import java.lang.annotation.*;
@@ -147,7 +149,7 @@ class PluginDocLintPluginTest {
             package io.kestra.plugin.acme;
             import io.kestra.core.models.tasks.Task;
             public class Reverse implements Task {
-                private String text;
+                public String text;
             }
         '''.stripIndent()
     }
@@ -185,6 +187,20 @@ class PluginDocLintPluginTest {
         assertTrue(result.output.contains('META-001'))
         assertTrue(result.output.contains('ICON-001'))
         assertTrue(result.output.contains('PKG-001'))
+    }
+
+    @Test
+    void 'task runner is detected and checked'() {
+        applyPlugin()
+        // A concrete TaskRunner with no @Schema must be flagged like any plugin type.
+        file('src/main/java/io/kestra/plugin/acme/runner/MyRunner.java').text = '''
+            package io.kestra.plugin.acme.runner;
+            import io.kestra.core.models.tasks.runners.TaskRunner;
+            public class MyRunner extends TaskRunner {}
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').buildAndFail()
+        assertTrue(result.output.contains('SCHEMA-001'))
+        assertTrue(result.output.contains('MyRunner'))
     }
 
     @Test

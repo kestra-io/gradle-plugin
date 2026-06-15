@@ -14,7 +14,7 @@ class SchemaRules {
         return [
             new BaseRule('SCHEMA-001', { PluginModel m ->
                 List<Violation> violations = []
-                m.tasksAndTriggers().each { ClassInfo c ->
+                m.documentablePlugins().each { ClassInfo c ->
                     if (!c.hasSchema) {
                         violations << new Violation('SCHEMA-001', c.fqcn,
                             "Task/trigger class is missing @Schema. Add @Schema(title = \"...\", description = \"...\").")
@@ -25,7 +25,7 @@ class SchemaRules {
 
             new BaseRule('SCHEMA-002', { PluginModel m ->
                 List<Violation> violations = []
-                m.tasksAndTriggers().each { ClassInfo c ->
+                m.documentablePlugins().each { ClassInfo c ->
                     if (c.hasSchema && blank(c.schemaDescription)) {
                         violations << new Violation('SCHEMA-002', c.fqcn,
                             "Class-level @Schema has no description. Add a non-empty description.")
@@ -36,7 +36,7 @@ class SchemaRules {
 
             new BaseRule('SCHEMA-003', { PluginModel m ->
                 List<Violation> violations = []
-                m.tasksAndTriggers().each { ClassInfo c ->
+                m.documentablePlugins().each { ClassInfo c ->
                     documentedFields(c).each { FieldInfo f ->
                         if (!f.hasSchema) {
                             violations << new Violation('SCHEMA-003', "${c.fqcn}#${f.name}",
@@ -84,7 +84,8 @@ class SchemaRules {
     }
 
     private static List<FieldInfo> documentedFields(ClassInfo c) {
-        return c.fields.findAll { !it.isStatic && !it.isTransient }
+        // Only serialized, user-facing properties: internal state fields are not documented.
+        return c.fields.findAll { !it.isStatic && !it.isTransient && it.isProperty }
     }
 
     private static boolean blank(String value) {
