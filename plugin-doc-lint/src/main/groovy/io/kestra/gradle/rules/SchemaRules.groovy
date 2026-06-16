@@ -62,7 +62,7 @@ class SchemaRules {
 
             new BaseRule('SCHEMA-005', { PluginModel m ->
                 List<Violation> violations = []
-                (m.tasksAndTriggers() + outputs(m)).unique().each { ClassInfo c ->
+                (m.documentablePlugins() + outputs(m)).unique().each { ClassInfo c ->
                     if (endsWithPeriod(c.schemaTitle)) {
                         violations << new Violation('SCHEMA-005', c.fqcn,
                             "@Schema title ends with a period. Remove the trailing '.'.")

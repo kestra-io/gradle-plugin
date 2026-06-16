@@ -28,6 +28,16 @@ class PropertyRulesTest {
     }
 
     @Test
+    void 'PROP-002 ignores secret-reference fields'() {
+        // A field that names/points to a secret (arn, id) is not the secret value itself.
+        ['secretArn', 'secretName', 'credentialId', 'pageToken'].each { name ->
+            def c = task('io.kestra.plugin.acme.Run')
+            c.fields = [field(name, [hasPluginProperty: true, pluginPropertyGroup: 'connection'])]
+            assertTrue(run('PROP-002', model([c])).isEmpty(), "${name} should not be flagged")
+        }
+    }
+
+    @Test
     void 'PROP-002 passes when secret marked'() {
         def c = task('io.kestra.plugin.acme.Run')
         c.fields = [field('apiToken', [hasPluginProperty: true, pluginPropertyGroup: 'connection', pluginPropertySecret: true])]

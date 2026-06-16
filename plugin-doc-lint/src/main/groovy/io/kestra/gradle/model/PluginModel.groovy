@@ -11,6 +11,9 @@ class PluginModel {
     File resourceRoot
     File sourceRoot
 
+    /** Classes the scanner could not load or inspect. Used to detect a broken classpath. */
+    int skippedClasses = 0
+
     /**
      * The {@code group} declared in {@code metadata/index.yaml}, populated when the model is
      * built. It is the authoritative plugin root: tasks may live only in a subpackage, so the

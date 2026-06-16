@@ -8,7 +8,6 @@ plugins {
 
 group = 'io.kestra.gradle'
 version = rootProject.findProperty('version')
-println "Building ${project.group}:${project.name}:${project.version}"
 
 gradlePlugin {
     plugins {

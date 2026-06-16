@@ -56,11 +56,24 @@ tasks:
         File src = tmp.toFile()
         File javaFile = new File(src, 'io/kestra/plugin/acme/Run.java')
         javaFile.parentFile.mkdirs()
-        javaFile.text = '@Example(full = true, lang = "yaml", code = {"id: x"})'
+        javaFile.text = '@Plugin(examples = { @Example(full = true, lang = "yaml", code = {"id: x"}) })'
         def c = task('io.kestra.plugin.acme.Run')
         c.examples = [example([full: true, code: FULL_EXAMPLE])]
         def m = model([c], [sourceRoot: src])
         assertEquals(1, run('PLUGIN-004', m).size())
+    }
+
+    @Test
+    void 'PLUGIN-004 ignores lang yaml outside the Plugin annotation'() {
+        File src = tmp.toFile()
+        File javaFile = new File(src, 'io/kestra/plugin/acme/Run.java')
+        javaFile.parentFile.mkdirs()
+        // A comment and an unrelated annotation must not trigger the rule.
+        javaFile.text = '// drop lang = "yaml", it is the default\n@Other(lang = "yaml")\n@Plugin(examples = { @Example(full = true, code = {"id: x"}) })'
+        def c = task('io.kestra.plugin.acme.Run')
+        c.examples = [example([full: true, code: FULL_EXAMPLE])]
+        def m = model([c], [sourceRoot: src])
+        assertTrue(run('PLUGIN-004', m).isEmpty())
     }
 
     @Test

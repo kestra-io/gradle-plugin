@@ -42,6 +42,13 @@ class PluginDocLintPlugin implements Plugin<Project> {
 
             project.tasks.named('check').configure { it.dependsOn(lintTask) }
         }
+
+        // No JVM plugin means no source set to lint: warn clearly instead of failing opaquely later.
+        project.afterEvaluate {
+            if (!project.plugins.hasPlugin('java')) {
+                project.logger.warn("[plugin-doc-lint] No 'java' plugin applied; lintPluginDocs has no sources to lint. Apply the 'java' or 'java-library' plugin.")
+            }
+        }
     }
 
     /** Prefer the resource root that actually holds plugin docs, else the first existing one. */

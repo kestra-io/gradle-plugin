@@ -60,6 +60,11 @@ abstract class LintPluginDocsTask extends DefaultTask {
         PluginModel model = buildModel(classDirs)
 
         if (model.classes.isEmpty()) {
+            // All classes failing to load means a broken classpath, not an empty plugin: fail rather than pass silently.
+            if (model.skippedClasses > 0) {
+                throw new GradleException("plugin-doc-lint loaded no classes but skipped ${model.skippedClasses} that failed to load. " +
+                    "Check that the plugin's compile/runtime classpath resolves (e.g. kestra-core).")
+            }
             logger.lifecycle('[plugin-doc-lint] No compiled classes found; nothing to lint.')
             return
         }
@@ -83,7 +88,7 @@ abstract class LintPluginDocsTask extends DefaultTask {
         logger.warn('[plugin-doc-lint] ignoreFailures is set; not failing the build.')
     }
 
-    private PluginModel buildModel(List<File> classDirs) {
+    protected PluginModel buildModel(List<File> classDirs) {
         List<URL> urls = []
         classDirs.each { urls << it.toURI().toURL() }
         pluginClasspath.files.each { urls << it.toURI().toURL() }
@@ -100,14 +105,15 @@ abstract class LintPluginDocsTask extends DefaultTask {
                 packages: scan.packages,
                 resourceRoot: resources,
                 sourceRoot: sourceDir.getOrNull(),
-                declaredRootPackage: declaredRoot(resources)
+                declaredRootPackage: declaredRoot(resources),
+                skippedClasses: scan.skipped
             )
         } finally {
             loader.close()
         }
     }
 
-    private static String declaredRoot(File resources) {
+    protected static String declaredRoot(File resources) {
         if (resources == null) {
             return null
         }
@@ -115,7 +121,7 @@ abstract class LintPluginDocsTask extends DefaultTask {
         return index?.get('group')?.toString()
     }
 
-    private void report(List<Violation> violations) {
+    protected void report(List<Violation> violations) {
         logger.error("\n[plugin-doc-lint] ${violations.size()} documentation violation(s):\n")
         violations.groupBy { it.ruleId }.sort().each { String ruleId, List<Violation> group ->
             logger.error("  ${ruleId}:")

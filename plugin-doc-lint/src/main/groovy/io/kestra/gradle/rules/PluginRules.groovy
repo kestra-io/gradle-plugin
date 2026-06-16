@@ -69,7 +69,7 @@ class PluginRules {
                 List<Violation> violations = []
                 m.tasksAndTriggers().findAll { !it.examples.isEmpty() }.each { ClassInfo c ->
                     File source = m.sourceFileFor(c)
-                    if (source != null && LANG_YAML.matcher(source.getText('UTF-8')).find()) {
+                    if (source != null && pluginAnnotationBlocks(source.getText('UTF-8')).any { LANG_YAML.matcher(it).find() }) {
                         violations << new Violation('PLUGIN-004', c.fqcn,
                             "@Example sets lang = \"yaml\" redundantly (it is the default). Remove the lang attribute.")
                     }
@@ -92,6 +92,44 @@ class PluginRules {
                 return violations
             })
         ]
+    }
+
+    /**
+     * Text of each {@code @Plugin(...)} annotation block, matched by balancing parentheses from
+     * the opening paren. Scoping the lang search to these blocks keeps PLUGIN-004 from matching a
+     * stray {@code lang = "yaml"} in a comment, a local, or an unrelated annotation in the file.
+     */
+    private static List<String> pluginAnnotationBlocks(String source) {
+        List<String> blocks = []
+        int from = 0
+        while (true) {
+            int at = source.indexOf('@Plugin', from)
+            if (at < 0) {
+                break
+            }
+            int open = source.indexOf('(', at)
+            if (open < 0) {
+                break
+            }
+            int depth = 0
+            int i = open
+            while (i < source.length()) {
+                String ch = source.substring(i, i + 1)
+                if (ch == '(') {
+                    depth++
+                } else if (ch == ')') {
+                    depth--
+                    if (depth == 0) {
+                        i++
+                        break
+                    }
+                }
+                i++
+            }
+            blocks << source.substring(open, Math.min(i, source.length()))
+            from = Math.max(i, at + '@Plugin'.length())
+        }
+        return blocks
     }
 
     private static void eachExample(PluginModel m, Closure body) {

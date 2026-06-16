@@ -34,6 +34,10 @@ class ClassScanner {
     static final String LOG_EXPORTER = 'io.kestra.core.models.tasks.logs.LogExporter'
     static final String OUTPUT = 'io.kestra.core.models.tasks.Output'
 
+    /** Field collection walks the type hierarchy up to, but not including, these framework bases. */
+    static final Set<String> FIELD_SCAN_STOP =
+        ([TASK, TASK_RUNNER, LOG_EXPORTER, OUTPUT] + TRIGGER + ['java.lang.Object']) as Set
+
     final ClassLoader loader
 
     ClassScanner(ClassLoader loader) {
@@ -78,7 +82,6 @@ class ClassScanner {
             }
         }
 
-        // Build per-package info for every package that holds a scanned class.
         result.classes.collect { it.packageName }.toSet().each { String pkg ->
             PackageInfo info = new PackageInfo(name: pkg)
             info.hasPackageInfo = packagesWithPackageInfo.contains(pkg)
@@ -123,11 +126,28 @@ class ClassScanner {
             }
         }
 
-        clazz.declaredFields.findAll { !it.synthetic }.each { Field field ->
+        collectDeclaredFields(clazz).each { Field field ->
             info.fields << toFieldInfo(clazz, field)
         }
 
         return info
+    }
+
+    /**
+     * Declared fields of the class and its superclasses, stopping before the Kestra framework
+     * base types so framework fields (id, type, conditions, ...) are not linted. A field name
+     * seen lower in the hierarchy shadows the same name declared higher up. The concrete class
+     * is kept as the accessor owner so inherited public getters still resolve.
+     */
+    private static List<Field> collectDeclaredFields(Class<?> clazz) {
+        List<Field> fields = []
+        Set<String> seen = new HashSet<>()
+        Class<?> current = clazz
+        while (current != null && !FIELD_SCAN_STOP.contains(current.name)) {
+            current.declaredFields.findAll { !it.synthetic && seen.add(it.name) }.each { fields << it }
+            current = current.superclass
+        }
+        return fields
     }
 
     private static ExampleInfo toExample(Annotation ex) {

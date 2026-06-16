@@ -16,14 +16,16 @@ class RuleConstants {
     ] as Set
 
     /**
-     * Field-name fragments that flag a property as secret (PROP-002, PLUGIN-005). Based on the
-     * issue's list (password, apiKey, apiToken, token, privateKey, secret, credential), with the
-     * bare "token" replaced by concrete credential-token forms. Plain substring matching of bare
-     * "token" matches non-secret names like "pageToken"/"nextPageToken"; the concrete forms catch
-     * apiToken/accessToken/refreshToken without that false positive.
+     * Field-name fragments that flag a property as secret (PROP-002, PLUGIN-005). These match
+     * fields that hold a secret value. Bare "token" is replaced by concrete credential-token
+     * forms so non-secret names like "pageToken"/"nextPageToken" are not flagged. Bare "secret"
+     * and "credential" are deliberately excluded: fields like "secretArn", "secretName" or
+     * "credentialId" hold a reference (a vault address or id), not the value itself, and masking
+     * them in logs would only hide which secret was used. The concrete forms below catch the
+     * value-bearing cases.
      */
     static final List<String> SECRET_NAME_PATTERNS = [
-        'password', 'apikey', 'privatekey', 'secret', 'credential',
+        'password', 'passphrase', 'apikey', 'privatekey', 'clientsecret',
         'apitoken', 'accesstoken', 'refreshtoken', 'authtoken', 'bearertoken', 'sessiontoken'
     ]
 

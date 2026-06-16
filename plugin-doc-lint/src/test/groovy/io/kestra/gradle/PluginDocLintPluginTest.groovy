@@ -217,6 +217,45 @@ class PluginDocLintPluginTest {
         applyPlugin("pluginDocLint { disabledRules = ['SCHEMA-001', 'PLUGIN-001', 'META-001', 'META-002', 'META-003', 'META-004', 'ICON-001', 'PKG-001', 'PKG-003', 'DOC-001', 'PROP-002'] }")
         writeNonCompliantPlugin()
         def result = runner('lintPluginDocs').buildAndFail()
+        // The disabled rule is gone, but a still-enabled rule (SCHEMA-003 on the public,
+        // un-annotated 'text' field) must still fire, proving the run was not silently emptied.
         assertFalse(result.output.contains('SCHEMA-001'))
+        assertTrue(result.output.contains('SCHEMA-003'))
+    }
+
+    @Test
+    void 'secret field declared on a base class is flagged'() {
+        applyPlugin()
+        file('src/main/java/io/kestra/plugin/acme/AbstractCall.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            public abstract class AbstractCall implements Task {
+                public String apiToken;
+            }
+        '''.stripIndent()
+        file('src/main/java/io/kestra/plugin/acme/Call.java').text = '''
+            package io.kestra.plugin.acme;
+            public class Call extends AbstractCall {}
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').buildAndFail()
+        assertTrue(result.output.contains('PROP-002'))
+        assertTrue(result.output.contains('#apiToken'))
+    }
+
+    @Test
+    void 'secret reference field is not flagged'() {
+        applyPlugin()
+        file('src/main/java/io/kestra/plugin/acme/Reverse.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            import io.kestra.core.models.annotations.PluginProperty;
+            public class Reverse implements Task {
+                @PluginProperty(group = "connection")
+                public String secretArn;
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').buildAndFail()
+        // secretArn is a reference, not a value: PROP-002 must not demand secret = true.
+        assertFalse(result.output.contains('PROP-002'))
     }
 }
