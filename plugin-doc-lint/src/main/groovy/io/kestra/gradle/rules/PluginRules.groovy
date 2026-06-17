@@ -6,6 +6,7 @@ import io.kestra.gradle.model.PluginModel
 import io.kestra.gradle.model.Violation
 import io.kestra.gradle.scan.YamlSupport
 
+import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 /**
@@ -18,6 +19,7 @@ import java.util.regex.Pattern
 class PluginRules {
 
     private static final Pattern LANG_YAML = ~/lang\s*=\s*"yaml"/
+    private static final Pattern PLUGIN_ANNOTATION = ~/@Plugin\s*\(/
 
     static List<Rule> rules() {
         return [
@@ -101,16 +103,9 @@ class PluginRules {
      */
     private static List<String> pluginAnnotationBlocks(String source) {
         List<String> blocks = []
-        int from = 0
-        while (true) {
-            int at = source.indexOf('@Plugin', from)
-            if (at < 0) {
-                break
-            }
-            int open = source.indexOf('(', at)
-            if (open < 0) {
-                break
-            }
+        Matcher matcher = PLUGIN_ANNOTATION.matcher(source)
+        while (matcher.find()) {
+            int open = matcher.end() - 1
             int depth = 0
             int i = open
             while (i < source.length()) {
@@ -127,7 +122,6 @@ class PluginRules {
                 i++
             }
             blocks << source.substring(open, Math.min(i, source.length()))
-            from = Math.max(i, at + '@Plugin'.length())
         }
         return blocks
     }
