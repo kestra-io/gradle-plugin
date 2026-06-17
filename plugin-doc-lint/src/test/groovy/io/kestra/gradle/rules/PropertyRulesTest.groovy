@@ -28,6 +28,15 @@ class PropertyRulesTest {
     }
 
     @Test
+    void 'PROP-002 flags value-bearing secret names'() {
+        ['secretKey', 'jwtSecret', 'clientSecret'].each { name ->
+            def c = task('io.kestra.plugin.acme.Run')
+            c.fields = [field(name, [hasPluginProperty: true, pluginPropertyGroup: 'connection'])]
+            assertEquals(1, run('PROP-002', model([c])).size(), "${name} should be flagged")
+        }
+    }
+
+    @Test
     void 'PROP-002 ignores secret-reference fields'() {
         // A field that names/points to a secret (arn, id) is not the secret value itself.
         ['secretArn', 'secretName', 'credentialId', 'pageToken'].each { name ->

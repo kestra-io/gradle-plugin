@@ -25,7 +25,7 @@ class RuleConstants {
      * value-bearing cases.
      */
     static final List<String> SECRET_NAME_PATTERNS = [
-        'password', 'passphrase', 'apikey', 'privatekey', 'clientsecret',
+        'password', 'passphrase', 'apikey', 'privatekey', 'secretkey', 'clientsecret', 'jwtsecret',
         'apitoken', 'accesstoken', 'refreshtoken', 'authtoken', 'bearertoken', 'sessiontoken'
     ]
 
