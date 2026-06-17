@@ -17,7 +17,7 @@ class SchemaRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     if (!c.hasSchema) {
                         violations << new Violation('SCHEMA-001', c.fqcn,
-                            "${c.kind} class is missing @Schema. Add @Schema(title = \"...\", description = \"...\").")
+                            "${c.kind.name().toLowerCase().replace('_', ' ').capitalize()} class is missing @Schema. Add @Schema(title = \"...\", description = \"...\").")
                     }
                 }
                 return violations

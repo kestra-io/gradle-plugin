@@ -45,7 +45,7 @@ class PropertyRules {
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (f.name == 'version') {
                             violations << new Violation('PROP-003', "${c.fqcn}#${f.name}",
-                                "Property named 'version' conflicts with Kestra internals. Rename it.")
+                                "Property named 'version' conflicts with the reserved 'version' field used to pin a plugin version. Rename it.")
                         }
                     }
                 }
