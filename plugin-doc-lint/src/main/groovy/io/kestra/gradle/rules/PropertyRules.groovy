@@ -43,7 +43,9 @@ class PropertyRules {
 
             new BaseRule('PROP-003', { PluginModel m ->
                 List<Violation> violations = []
-                propertyHolders(m).each { ClassInfo c ->
+                // Input concern only: 'version' collides with the reserved task/trigger version key
+                // in flow YAML. Output result fields named 'version' are fine, so outputs are excluded.
+                m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (f.name == 'version') {
                             violations << new Violation('PROP-003', "${c.fqcn}#${f.name}",

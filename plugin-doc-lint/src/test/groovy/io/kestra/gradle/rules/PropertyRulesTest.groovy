@@ -59,4 +59,12 @@ class PropertyRulesTest {
         c.fields = [field('version')]
         assertEquals(1, run('PROP-003', model([c])).size())
     }
+
+    @Test
+    void 'PROP-003 ignores version on an output class'() {
+        // 'version' only conflicts as a task/trigger input; an output result field is fine.
+        def o = output('io.kestra.plugin.acme.Run$Output')
+        o.fields = [field('version')]
+        assertTrue(run('PROP-003', model([o])).isEmpty())
+    }
 }
