@@ -19,6 +19,14 @@ class PropertyRulesTest {
     }
 
     @Test
+    void 'PROP-001 ignores output fields'() {
+        // a group organizes the input form, so it is meaningless on an output result field.
+        def o = output('io.kestra.plugin.acme.Run$Output')
+        o.fields = [field('rows', [hasPluginProperty: true, pluginPropertyGroup: ''])]
+        assertTrue(run('PROP-001', model([o])).isEmpty())
+    }
+
+    @Test
     void 'PROP-002 flags unmarked secret field'() {
         def c = task('io.kestra.plugin.acme.Run')
         c.fields = [field('apiToken', [hasPluginProperty: true, pluginPropertyGroup: 'connection'])]

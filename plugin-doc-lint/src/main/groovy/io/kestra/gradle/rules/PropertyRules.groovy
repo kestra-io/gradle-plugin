@@ -14,9 +14,9 @@ class PropertyRules {
         return [
             new BaseRule('PROP-001', { PluginModel m ->
                 List<Violation> violations = []
-                // Scoped to task/trigger/output classes: group is meaningful on a task's own
-                // properties, not on nested model POJOs used merely as property types.
-                propertyHolders(m).each { ClassInfo c ->
+                // Input concern: a group organizes the input form, so it is meaningless on output
+                // result fields. Scope to task/trigger inputs only, like PROP-002 and PROP-003.
+                m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { it.hasPluginProperty }.each { FieldInfo f ->
                         if (!RuleConstants.PROPERTY_GROUPS.contains(f.pluginPropertyGroup)) {
                             violations << new Violation('PROP-001', "${c.fqcn}#${f.name}",
@@ -56,11 +56,5 @@ class PropertyRules {
                 return violations
             })
         ]
-    }
-
-    private static List<ClassInfo> propertyHolders(PluginModel m) {
-        List<ClassInfo> holders = new ArrayList<>(m.documentablePlugins())
-        holders.addAll(m.classes.findAll { it.isConcreteOutput() })
-        return holders
     }
 }
