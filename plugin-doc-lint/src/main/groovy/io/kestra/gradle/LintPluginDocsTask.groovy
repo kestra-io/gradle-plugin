@@ -123,14 +123,24 @@ abstract class LintPluginDocsTask extends DefaultTask {
         return index?.get('group')?.toString()
     }
 
+    /**
+     * Prints the shared message once per rule heading and lists each affected location on its own
+     * line, so an identical message is not repeated on every finding. A rule with genuinely
+     * different messages gets one heading per distinct message.
+     */
     protected void report(List<Violation> violations) {
-        logger.error("\n[plugin-doc-lint] ${violations.size()} documentation violation(s):\n")
-        violations.groupBy { it.ruleId }.sort().each { String ruleId, List<Violation> group ->
-            logger.error("  ${ruleId}:")
-            group.each { Violation v ->
-                logger.error("    - ${v.location}: ${v.message}")
+        int total = violations.size()
+        logger.error("\n[plugin-doc-lint] ${total} documentation issue${total == 1 ? '' : 's'}:\n")
+        violations.groupBy { it.ruleId }.sort().each { String ruleId, List<Violation> ruleGroup ->
+            ruleGroup.groupBy { it.message }.each { String message, List<Violation> group ->
+                logger.error("  ${ruleId}: ${message}")
+                group.each { Violation v ->
+                    logger.error("    - ${v.location}")
+                }
+                logger.error('')
             }
         }
+        logger.error('[plugin-doc-lint] Rule reference and how to skip rules: https://github.com/kestra-io/gradle-plugin#plugin-doc-lint')
         logger.error('')
     }
 }
