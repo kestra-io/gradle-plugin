@@ -51,7 +51,6 @@ class ClassScanner {
     Result scan(List<File> classDirs) {
         Result result = new Result()
         Set<String> packagesWithPackageInfo = []
-        // Field scanning is limited to these so framework base-class fields (from dependencies) are not linted.
         Set<String> ownClasses = collectClassNames(classDirs)
 
         classDirs.findAll { it.exists() }.each { File dir ->
