@@ -117,6 +117,6 @@ git checkout main && git pull
 
 It bumps the version, tags `v<version>`, pushes, and bumps `main` to the next `-SNAPSHOT`. The
 pushed tag triggers CI, which publishes all modules to Maven Central and creates the GitHub
-release. One release versions all four plugins together.
+release. One release versions all plugins together.
 
-A new minor or major is just the next version number, no release branch needed.
+A new patch, minor or major is just the next version number, no release branch needed.
