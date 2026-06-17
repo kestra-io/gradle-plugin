@@ -105,3 +105,18 @@ Documentation (`src/main/resources/doc/`):
 PLUGIN-004 is checked against the source text, because reflection cannot tell an explicit
 `lang = "yaml"` from the default. META-003 requires `body` to be present but allows it to be
 empty, matching how current plugins ship it.
+
+## Releasing
+
+Releases are tag-based off `main`, using `net.researchgate.release`. To cut a release:
+
+```
+git checkout main && git pull
+./gradlew release
+```
+
+It bumps the version, tags `v<version>`, pushes, and bumps `main` to the next `-SNAPSHOT`. The
+pushed tag triggers CI, which publishes all modules to Maven Central and creates the GitHub
+release. One release versions all four plugins together.
+
+A new minor or major is just the next version number, no release branch needed.
