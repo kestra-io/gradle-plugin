@@ -34,10 +34,6 @@ class ClassScanner {
     static final String LOG_EXPORTER = 'io.kestra.core.models.tasks.logs.LogExporter'
     static final String OUTPUT = 'io.kestra.core.models.tasks.Output'
 
-    /** Field collection walks the type hierarchy up to, but not including, these framework bases. */
-    static final Set<String> FIELD_SCAN_STOP =
-        ([TASK, TASK_RUNNER, LOG_EXPORTER, OUTPUT] + TRIGGER + ['java.lang.Object']) as Set
-
     final ClassLoader loader
 
     ClassScanner(ClassLoader loader) {
@@ -55,6 +51,8 @@ class ClassScanner {
     Result scan(List<File> classDirs) {
         Result result = new Result()
         Set<String> packagesWithPackageInfo = []
+        // Field scanning is limited to these so framework base-class fields (from dependencies) are not linted.
+        Set<String> ownClasses = collectClassNames(classDirs)
 
         classDirs.findAll { it.exists() }.each { File dir ->
             dir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.class/) { File classFile ->
@@ -74,7 +72,7 @@ class ClassScanner {
                     return
                 }
                 try {
-                    result.classes << toClassInfo(clazz)
+                    result.classes << toClassInfo(clazz, ownClasses)
                 } catch (Throwable ignored) {
                     // a class whose dependencies cannot be resolved is skipped, not fatal
                     result.skipped++
@@ -93,6 +91,19 @@ class ClassScanner {
         return result
     }
 
+    private static Set<String> collectClassNames(List<File> classDirs) {
+        Set<String> names = []
+        classDirs.findAll { it.exists() }.each { File dir ->
+            dir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.class/) { File classFile ->
+                String name = dir.toURI().relativize(classFile.toURI()).path[0..-7].replace('/', '.')
+                if (!name.endsWith('package-info')) {
+                    names << name
+                }
+            }
+        }
+        return names
+    }
+
     private Class<?> loadClass(String name) {
         try {
             return Class.forName(name, false, loader)
@@ -101,7 +112,7 @@ class ClassScanner {
         }
     }
 
-    private ClassInfo toClassInfo(Class<?> clazz) {
+    private ClassInfo toClassInfo(Class<?> clazz, Set<String> ownClasses) {
         ClassInfo info = new ClassInfo()
         info.fqcn = clazz.name
         info.packageName = clazz.package?.name ?: ''
@@ -126,7 +137,7 @@ class ClassScanner {
             }
         }
 
-        collectDeclaredFields(clazz).each { Field field ->
+        collectDeclaredFields(clazz, ownClasses).each { Field field ->
             info.fields << toFieldInfo(clazz, field)
         }
 
@@ -134,16 +145,15 @@ class ClassScanner {
     }
 
     /**
-     * Declared fields of the class and its superclasses, stopping before the Kestra framework
-     * base types so framework fields (id, type, conditions, ...) are not linted. A field name
-     * seen lower in the hierarchy shadows the same name declared higher up. The concrete class
-     * is kept as the accessor owner so inherited public getters still resolve.
+     * Declared fields of the class and any superclasses in the plugin's own output. The walk stops
+     * at the first class outside the plugin (a framework base), so framework fields are not linted.
+     * A field name seen lower in the hierarchy shadows the same name higher up.
      */
-    private static List<Field> collectDeclaredFields(Class<?> clazz) {
+    private static List<Field> collectDeclaredFields(Class<?> clazz, Set<String> ownClasses) {
         List<Field> fields = []
         Set<String> seen = new HashSet<>()
         Class<?> current = clazz
-        while (current != null && !FIELD_SCAN_STOP.contains(current.name)) {
+        while (current != null && ownClasses.contains(current.name)) {
             current.declaredFields.findAll { !it.synthetic && seen.add(it.name) }.each { fields << it }
             current = current.superclass
         }
