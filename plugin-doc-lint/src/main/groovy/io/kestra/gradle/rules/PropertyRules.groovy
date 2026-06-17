@@ -34,7 +34,7 @@ class PropertyRules {
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (RuleConstants.looksLikeSecret(f.name) && !f.pluginPropertySecret) {
                             violations << new Violation('PROP-002', "${c.fqcn}#${f.name}",
-                                "Secret-looking field is not marked secret. Add @PluginProperty(secret = true).")
+                                "Field looks like a secret but is not masked. Add @PluginProperty(secret = true).")
                         }
                     }
                 }
