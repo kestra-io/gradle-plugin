@@ -19,11 +19,13 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 /**
  * Builds the {@link PluginModel} from the compiled output and resources, runs every enabled
  * rule, prints a grouped report, and fails the build on any violation unless ignored.
  */
+@DisableCachingByDefault(because = 'Reports documentation violations and produces no cacheable output')
 abstract class LintPluginDocsTask extends DefaultTask {
 
     @Classpath
