@@ -140,7 +140,7 @@ abstract class LintPluginDocsTask extends DefaultTask {
                 logger.error('')
             }
         }
-        logger.error('[plugin-doc-lint] Rule reference and how to skip rules: https://github.com/kestra-io/gradle-plugin#plugin-doc-lint')
+        logger.error('[plugin-doc-lint] Rule reference and how to skip rules: https://github.com/kestra-io/gradle-plugin#rules')
         logger.error('')
     }
 }
