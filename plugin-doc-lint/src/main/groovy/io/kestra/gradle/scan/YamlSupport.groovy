@@ -1,6 +1,8 @@
 package io.kestra.gradle.scan
 
+import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.constructor.SafeConstructor
 import org.yaml.snakeyaml.error.YAMLException
 
 /**
@@ -19,7 +21,7 @@ class YamlSupport {
     /** Parse a YAML string into a Map, or null when it is invalid or not a mapping. */
     static Map<String, Object> parseMap(String text) {
         try {
-            Object loaded = new Yaml().load(text)
+            Object loaded = new Yaml(new SafeConstructor(new LoaderOptions())).load(text)
             if (loaded instanceof Map) {
                 return (Map<String, Object>) loaded
             }

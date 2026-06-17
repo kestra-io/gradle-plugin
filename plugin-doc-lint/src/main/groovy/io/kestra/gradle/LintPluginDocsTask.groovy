@@ -29,7 +29,7 @@ abstract class LintPluginDocsTask extends DefaultTask {
     @Classpath
     abstract ConfigurableFileCollection getPluginClasspath()
 
-    @InputFiles
+    @Classpath
     abstract ConfigurableFileCollection getClassesDirs()
 
     @Internal
