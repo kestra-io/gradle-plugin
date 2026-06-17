@@ -14,8 +14,6 @@ class PropertyRules {
         return [
             new BaseRule('PROP-001', { PluginModel m ->
                 List<Violation> violations = []
-                // Input concern: a group organizes the input form, so it is meaningless on output
-                // result fields. Scope to task/trigger inputs only, like PROP-002 and PROP-003.
                 m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { it.hasPluginProperty }.each { FieldInfo f ->
                         if (!RuleConstants.PROPERTY_GROUPS.contains(f.pluginPropertyGroup)) {
@@ -34,7 +32,7 @@ class PropertyRules {
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (RuleConstants.looksLikeSecret(f.name) && !f.pluginPropertySecret) {
                             violations << new Violation('PROP-002', "${c.fqcn}#${f.name}",
-                                "Field looks like a secret but is not masked. Add @PluginProperty(secret = true).")
+                                "Secret field is not masked. Add @PluginProperty(secret = true).")
                         }
                     }
                 }
