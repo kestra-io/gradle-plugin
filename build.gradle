@@ -1,0 +1,15 @@
+plugins {
+    id 'net.researchgate.release' version '3.1.0'
+}
+
+release {
+    preTagCommitMessage = 'update to version'
+    tagCommitMessage = 'tag version'
+    newVersionCommitMessage = 'update snapshot version'
+    tagTemplate = 'v${version}'
+    // Root is an empty aggregator with no build task; CI runs the full check on the tag.
+    buildTasks = []
+    git {
+        requireBranch.set('main')
+    }
+}
