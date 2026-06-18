@@ -8,6 +8,7 @@ import io.kestra.gradle.model.PackageInfo
 import java.lang.annotation.Annotation
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 /**
@@ -176,18 +177,20 @@ class ClassScanner {
     private static FieldInfo toFieldInfo(Class<?> owner, Field field) {
         FieldInfo info = new FieldInfo()
         info.name = field.name
+        info.declaringClassName = field.declaringClass.name
         info.isStatic = Modifier.isStatic(field.modifiers)
         info.isTransient = Modifier.isTransient(field.modifiers)
         info.isProperty = isProperty(owner, field)
 
-        Annotation schema = find(field, SCHEMA)
+        // @Schema and @PluginProperty may sit on the field or on its getter (interface-based config), so check both.
+        Annotation schema = find(field, SCHEMA) ?: accessorAnnotation(owner, field.name, SCHEMA)
         if (schema != null) {
             info.hasSchema = true
             info.schemaTitle = attrString(schema, 'title')
             info.schemaDescription = attrString(schema, 'description')
         }
 
-        Annotation pp = find(field, PLUGIN_PROPERTY)
+        Annotation pp = find(field, PLUGIN_PROPERTY) ?: accessorAnnotation(owner, field.name, PLUGIN_PROPERTY)
         if (pp != null) {
             info.hasPluginProperty = true
             info.pluginPropertyGroup = attrString(pp, 'group')
@@ -195,6 +198,40 @@ class ClassScanner {
         }
 
         return info
+    }
+
+    /** The annotation {@code fqn} on the field's getter (getX/isX), searched across superclasses and interfaces. */
+    private static Annotation accessorAnnotation(Class<?> owner, String fieldName, String fqn) {
+        if (!fieldName) {
+            return null
+        }
+        String cap = fieldName[0].toUpperCase() + fieldName.substring(1)
+        Set<String> names = ["get${cap}".toString(), "is${cap}".toString()] as Set
+        Set<Class<?>> seen = new HashSet<>()
+        Deque<Class<?>> queue = new ArrayDeque<>()
+        queue.add(owner)
+        while (!queue.isEmpty()) {
+            Class<?> current = queue.poll()
+            if (current == null || !seen.add(current)) {
+                continue
+            }
+            try {
+                for (Method m : current.declaredMethods) {
+                    if (m.parameterCount == 0 && names.contains(m.name)) {
+                        Annotation a = m.declaredAnnotations.find { it.annotationType().name == fqn }
+                        if (a != null) {
+                            return a
+                        }
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+            if (current.superclass != null) {
+                queue.add(current.superclass)
+            }
+            current.interfaces.each { queue.add(it) }
+        }
+        return null
     }
 
     private void readSubGroup(String pkg, ClassInfo representative, PackageInfo info) {

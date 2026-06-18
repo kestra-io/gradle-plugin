@@ -7,6 +7,8 @@ package io.kestra.gradle.model
  */
 class FieldInfo {
     String name
+    /** The class that declares this field, so an inherited field is reported once at its source. */
+    String declaringClassName
     boolean isStatic
     boolean isTransient
 

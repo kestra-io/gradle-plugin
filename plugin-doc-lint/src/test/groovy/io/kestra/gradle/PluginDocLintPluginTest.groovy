@@ -258,4 +258,49 @@ class PluginDocLintPluginTest {
         // secretArn is a reference, not a value: PROP-002 must not demand secret = true.
         assertFalse(result.output.contains('PROP-002'))
     }
+
+    @Test
+    void 'field documented via getter @Schema is not flagged'() {
+        applyPlugin('pluginDocLint { ignoreFailures = true }')
+        file('src/main/java/io/kestra/plugin/acme/HasRegion.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.swagger.v3.oas.annotations.media.Schema;
+            public interface HasRegion {
+                @Schema(title = "The region")
+                String getRegion();
+            }
+        '''.stripIndent()
+        file('src/main/java/io/kestra/plugin/acme/Reverse.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            public class Reverse implements Task, HasRegion {
+                public String region;
+                public String getRegion() { return region; }
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').build()
+        // @Schema is on getRegion(), so the region field is documented and must not be flagged.
+        assertFalse(result.output.contains('#region'))
+    }
+
+    @Test
+    void 'inherited field is reported once at its declaring class'() {
+        applyPlugin('pluginDocLint { ignoreFailures = true }')
+        file('src/main/java/io/kestra/plugin/acme/Base.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            public abstract class Base implements Task {
+                public String shared;
+            }
+        '''.stripIndent()
+        file('src/main/java/io/kestra/plugin/acme/One.java').text =
+            'package io.kestra.plugin.acme;\npublic class One extends Base {}\n'
+        file('src/main/java/io/kestra/plugin/acme/Two.java').text =
+            'package io.kestra.plugin.acme;\npublic class Two extends Base {}\n'
+        def result = runner('lintPluginDocs').build()
+        // 'shared' is inherited by One and Two but reported once, at Base.
+        assertTrue(result.output.contains('io.kestra.plugin.acme.Base#shared'))
+        assertFalse(result.output.contains('One#shared'))
+        assertFalse(result.output.contains('Two#shared'))
+    }
 }

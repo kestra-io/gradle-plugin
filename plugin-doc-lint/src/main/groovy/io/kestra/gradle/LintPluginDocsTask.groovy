@@ -76,6 +76,8 @@ abstract class LintPluginDocsTask extends DefaultTask {
 
         List<Violation> violations = []
         rules.each { violations.addAll(it.check(model)) }
+        // An inherited member is reported through every subclass; collapse those to one finding at its source.
+        violations = violations.unique { [it.ruleId, it.location, it.message] }
 
         if (violations.isEmpty()) {
             logger.lifecycle("[plugin-doc-lint] All ${rules.size()} rules passed.")
