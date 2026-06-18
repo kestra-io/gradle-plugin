@@ -84,7 +84,7 @@ class MetadataRules {
                     String group = data['group']?.toString()
                     if (group != pkg) {
                         violations << new Violation('META-004', "metadata/${file.name}",
-                            "group '${group}' does not match package '${pkg}'. Set group: ${pkg}.")
+                            "Group '${group}' does not match package '${pkg}'. Set group: ${pkg}.")
                     }
                 }
                 return violations

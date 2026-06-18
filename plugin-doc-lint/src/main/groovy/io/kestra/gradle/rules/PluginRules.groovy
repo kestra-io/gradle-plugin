@@ -28,7 +28,7 @@ class PluginRules {
                 m.tasksAndTriggers().each { ClassInfo c ->
                     if (c.examples.isEmpty()) {
                         violations << new Violation('PLUGIN-001', c.fqcn,
-                            "No @Plugin examples. Add @Plugin(examples = { @Example(full = true, code = ...) }).")
+                            "No @Plugin examples. Add @Plugin(examples = { @Example(title = \"...\", full = true, code = ...) }).")
                     }
                 }
                 return violations
@@ -52,7 +52,7 @@ class PluginRules {
                     Map<String, Object> parsed = YamlSupport.parseMap(e.code)
                     if (parsed == null) {
                         violations << new Violation('PLUGIN-003', loc,
-                            "Example code is not valid YAML mapping. Provide a full flow with id, namespace and tasks/triggers.")
+                            "Example code is not valid YAML. Fix the YAML syntax.")
                         return
                     }
                     List<String> missing = []
