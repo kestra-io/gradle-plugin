@@ -17,7 +17,7 @@ class PropertyRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { it.hasPluginProperty }.each { FieldInfo f ->
                         if (!RuleConstants.PROPERTY_GROUPS.contains(f.pluginPropertyGroup)) {
-                            violations << new Violation('PROP-001', "${c.fqcn}#${f.name}",
+                            violations << new Violation('PROP-001', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "@PluginProperty group '${f.pluginPropertyGroup ?: ''}' is not allowed. Use one of ${RuleConstants.PROPERTY_GROUPS.sort()}.")
                         }
                     }
@@ -31,7 +31,7 @@ class PropertyRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (RuleConstants.looksLikeSecret(f.name) && !f.pluginPropertySecret) {
-                            violations << new Violation('PROP-002', "${c.fqcn}#${f.name}",
+                            violations << new Violation('PROP-002', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "Secret field is not masked. Add @PluginProperty(secret = true).")
                         }
                     }
@@ -44,7 +44,7 @@ class PropertyRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     c.fields.findAll { !it.isStatic && it.isProperty }.each { FieldInfo f ->
                         if (f.name == 'version') {
-                            violations << new Violation('PROP-003', "${c.fqcn}#${f.name}",
+                            violations << new Violation('PROP-003', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "Property named 'version' conflicts with the reserved 'version' field used to pin a plugin version. Rename it.")
                         }
                     }

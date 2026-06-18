@@ -39,7 +39,7 @@ class SchemaRules {
                 m.documentablePlugins().each { ClassInfo c ->
                     documentedFields(c).each { FieldInfo f ->
                         if (!f.hasSchema) {
-                            violations << new Violation('SCHEMA-003', "${c.fqcn}#${f.name}",
+                            violations << new Violation('SCHEMA-003', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "Field is missing @Schema. Annotate it with @Schema(title = \"...\").")
                         }
                     }
@@ -52,7 +52,7 @@ class SchemaRules {
                 outputs(m).each { ClassInfo c ->
                     documentedFields(c).each { FieldInfo f ->
                         if (!f.hasSchema) {
-                            violations << new Violation('SCHEMA-004', "${c.fqcn}#${f.name}",
+                            violations << new Violation('SCHEMA-004', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "Output field is missing @Schema. Annotate it with @Schema(title = \"...\").")
                         }
                     }
@@ -69,7 +69,7 @@ class SchemaRules {
                     }
                     documentedFields(c).each { FieldInfo f ->
                         if (endsWithPeriod(f.schemaTitle)) {
-                            violations << new Violation('SCHEMA-005', "${c.fqcn}#${f.name}",
+                            violations << new Violation('SCHEMA-005', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "@Schema title ends with a period. Remove the trailing '.'.")
                         }
                     }
