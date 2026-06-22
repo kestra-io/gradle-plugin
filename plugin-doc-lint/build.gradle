@@ -53,7 +53,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.yaml:snakeyaml:2.3'
+    implementation 'org.yaml:snakeyaml:2.6'
 
     testImplementation gradleTestKit()
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
