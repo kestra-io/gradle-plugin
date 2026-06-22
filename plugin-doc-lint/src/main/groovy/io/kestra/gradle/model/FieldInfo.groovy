@@ -34,4 +34,12 @@ class FieldInfo {
     boolean hasPluginProperty
     String pluginPropertyGroup
     boolean pluginPropertySecret
+
+    /**
+     * True when the resolved {@code @PluginProperty} is declared in the plugin's own code. False
+     * when it is only inherited from a framework type the plugin cannot edit (e.g. a core
+     * interface getter such as {@code PollingTriggerInterface.getInterval()}). Group/value rules
+     * apply only to own annotations.
+     */
+    boolean pluginPropertyFromOwnCode = true
 }

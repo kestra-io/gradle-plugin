@@ -19,6 +19,22 @@ class PropertyRulesTest {
     }
 
     @Test
+    void 'PROP-001 ignores a bad group inherited from a framework type'() {
+        // e.g. PollingTriggerInterface.getInterval() declares a bare @PluginProperty in core;
+        // the plugin cannot fix that group, so it must not be flagged.
+        def c = task('io.kestra.plugin.acme.MyTrigger')
+        c.fields = [field('interval', [hasPluginProperty: true, pluginPropertyGroup: '', pluginPropertyFromOwnCode: false])]
+        assertTrue(run('PROP-001', model([c])).isEmpty())
+    }
+
+    @Test
+    void 'PROP-001 still flags an own bad group'() {
+        def c = task('io.kestra.plugin.acme.Bad')
+        c.fields = [field('host', [hasPluginProperty: true, pluginPropertyGroup: '', pluginPropertyFromOwnCode: true])]
+        assertEquals(1, run('PROP-001', model([c])).size())
+    }
+
+    @Test
     void 'PROP-001 ignores output fields'() {
         // a group organizes the input form, so it is meaningless on an output result field.
         def o = output('io.kestra.plugin.acme.Run$Output')

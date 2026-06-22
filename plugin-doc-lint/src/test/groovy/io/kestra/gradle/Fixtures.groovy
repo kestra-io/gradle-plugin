@@ -57,6 +57,7 @@ class Fixtures {
         f.hasPluginProperty = opts.get('hasPluginProperty', false)
         f.pluginPropertyGroup = opts.get('pluginPropertyGroup')
         f.pluginPropertySecret = opts.get('pluginPropertySecret', false)
+        f.pluginPropertyFromOwnCode = opts.get('pluginPropertyFromOwnCode', true)
         return f
     }
 

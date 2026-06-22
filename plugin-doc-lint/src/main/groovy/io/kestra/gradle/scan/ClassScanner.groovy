@@ -201,11 +201,22 @@ class ClassScanner {
             }
         }
 
-        Annotation pp = find(field, PLUGIN_PROPERTY) ?: accessorAnnotation(owner, field.name, PLUGIN_PROPERTY)
+        Annotation pp = find(field, PLUGIN_PROPERTY)
         if (pp != null) {
+            // Declared on the field itself: the field belongs to an own class, so the annotation is own.
             info.hasPluginProperty = true
             info.pluginPropertyGroup = attrString(pp, 'group')
             info.pluginPropertySecret = (attr(pp, 'secret') ?: false) as boolean
+        } else {
+            Object[] accessor = accessorAnnotationAndOwner(owner, field.name, PLUGIN_PROPERTY)
+            if (accessor != null) {
+                pp = (Annotation) accessor[0]
+                info.hasPluginProperty = true
+                info.pluginPropertyGroup = attrString(pp, 'group')
+                info.pluginPropertySecret = (attr(pp, 'secret') ?: false) as boolean
+                // Inherited from a framework type (e.g. a core interface getter) the plugin cannot edit.
+                info.pluginPropertyFromOwnCode = ownClasses.contains((String) accessor[1])
+            }
         }
 
         return info
