@@ -138,7 +138,7 @@ class ClassScanner {
         }
 
         collectDeclaredFields(clazz, ownClasses).each { Field field ->
-            info.fields << toFieldInfo(clazz, field)
+            info.fields << toFieldInfo(clazz, field, ownClasses)
         }
 
         return info
@@ -174,7 +174,7 @@ class ClassScanner {
         return example
     }
 
-    private static FieldInfo toFieldInfo(Class<?> owner, Field field) {
+    private static FieldInfo toFieldInfo(Class<?> owner, Field field, Set<String> ownClasses) {
         FieldInfo info = new FieldInfo()
         info.name = field.name
         info.declaringClassName = field.declaringClass.name
@@ -183,11 +183,22 @@ class ClassScanner {
         info.isProperty = isProperty(owner, field)
 
         // @Schema and @PluginProperty may sit on the field or on its getter (interface-based config), so check both.
-        Annotation schema = find(field, SCHEMA) ?: accessorAnnotation(owner, field.name, SCHEMA)
+        Annotation schema = find(field, SCHEMA)
         if (schema != null) {
+            // Declared on the field itself: the field belongs to an own class, so the annotation is own.
             info.hasSchema = true
             info.schemaTitle = attrString(schema, 'title')
             info.schemaDescription = attrString(schema, 'description')
+        } else {
+            Object[] accessor = accessorAnnotationAndOwner(owner, field.name, SCHEMA)
+            if (accessor != null) {
+                schema = (Annotation) accessor[0]
+                info.hasSchema = true
+                info.schemaTitle = attrString(schema, 'title')
+                info.schemaDescription = attrString(schema, 'description')
+                // Inherited from a framework type (e.g. a core interface getter) the plugin cannot edit.
+                info.schemaFromOwnCode = ownClasses.contains((String) accessor[1])
+            }
         }
 
         Annotation pp = find(field, PLUGIN_PROPERTY) ?: accessorAnnotation(owner, field.name, PLUGIN_PROPERTY)
@@ -202,6 +213,16 @@ class ClassScanner {
 
     /** The annotation {@code fqn} on the field's getter (getX/isX), searched across superclasses and interfaces. */
     private static Annotation accessorAnnotation(Class<?> owner, String fieldName, String fqn) {
+        Object[] result = accessorAnnotationAndOwner(owner, fieldName, fqn)
+        return result == null ? null : (Annotation) result[0]
+    }
+
+    /**
+     * The annotation {@code fqn} on the field's getter (getX/isX) and the name of the class that
+     * declares it, searched across superclasses and interfaces. Returns {@code [annotation, declaringClassName]}
+     * or {@code null}. The declaring class name lets callers tell an own annotation from an inherited one.
+     */
+    private static Object[] accessorAnnotationAndOwner(Class<?> owner, String fieldName, String fqn) {
         if (!fieldName) {
             return null
         }
@@ -220,7 +241,7 @@ class ClassScanner {
                     if (m.parameterCount == 0 && names.contains(m.name)) {
                         Annotation a = m.declaredAnnotations.find { it.annotationType().name == fqn }
                         if (a != null) {
-                            return a
+                            return [a, current.name] as Object[]
                         }
                     }
                 }

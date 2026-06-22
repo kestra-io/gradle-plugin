@@ -284,6 +284,31 @@ class PluginDocLintPluginTest {
     }
 
     @Test
+    void 'SCHEMA-005 flags a period in a title on an own interface getter'() {
+        applyPlugin('pluginDocLint { ignoreFailures = true }')
+        // The interface is part of the plugin's own code, so its title is the author's to fix.
+        file('src/main/java/io/kestra/plugin/acme/HasRegion.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.swagger.v3.oas.annotations.media.Schema;
+            public interface HasRegion {
+                @Schema(title = "The region.")
+                String getRegion();
+            }
+        '''.stripIndent()
+        file('src/main/java/io/kestra/plugin/acme/Reverse.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            public class Reverse implements Task, HasRegion {
+                public String region;
+                public String getRegion() { return region; }
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').build()
+        assertTrue(result.output.contains('SCHEMA-005'))
+        assertTrue(result.output.contains('#region'))
+    }
+
+    @Test
     void 'inherited field is reported once at its declaring class'() {
         applyPlugin('pluginDocLint { ignoreFailures = true }')
         file('src/main/java/io/kestra/plugin/acme/Base.java').text = '''

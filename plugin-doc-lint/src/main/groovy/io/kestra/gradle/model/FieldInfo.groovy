@@ -23,6 +23,14 @@ class FieldInfo {
     String schemaTitle
     String schemaDescription
 
+    /**
+     * True when the resolved {@code @Schema} is declared in the plugin's own code (on the field
+     * or a getter in an own class). False when it is only inherited from a framework type the
+     * plugin cannot edit (e.g. a core interface getter). Title-formatting rules apply only to
+     * own titles.
+     */
+    boolean schemaFromOwnCode = true
+
     boolean hasPluginProperty
     String pluginPropertyGroup
     boolean pluginPropertySecret

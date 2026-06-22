@@ -66,7 +66,7 @@ Icons (`src/main/resources/icons/`):
 | SCHEMA-002 | the class-level `@Schema` on a task or trigger has a non-empty `description` |
 | SCHEMA-003 | every non-static, non-transient field in a task, trigger, task runner or log exporter has `@Schema` |
 | SCHEMA-004 | every field in an output class has `@Schema` |
-| SCHEMA-005 | no `@Schema` `title` ends with a period |
+| SCHEMA-005 | no `@Schema` `title` ends with a period (titles inherited from a framework type the plugin cannot edit are exempt) |
 
 `@Plugin` / `@Example`:
 

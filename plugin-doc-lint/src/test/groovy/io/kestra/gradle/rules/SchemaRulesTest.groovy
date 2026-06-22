@@ -81,4 +81,20 @@ class SchemaRulesTest {
         def v = run('SCHEMA-005', model([c, out]))
         assertEquals(2, v.size())
     }
+
+    @Test
+    void 'SCHEMA-005 ignores a period in a title inherited from a framework type'() {
+        // e.g. a field implementing a core interface whose getter @Schema title ends with a period;
+        // the plugin cannot edit core, so the title must not be flagged.
+        def c = task('io.kestra.plugin.acme.Run')
+        c.fields = [field('outputFiles', [hasSchema: true, schemaTitle: 'Files to send to internal storage.', schemaFromOwnCode: false])]
+        assertTrue(run('SCHEMA-005', model([c])).isEmpty())
+    }
+
+    @Test
+    void 'SCHEMA-005 still flags an own field title ending with a period'() {
+        def c = task('io.kestra.plugin.acme.Run')
+        c.fields = [field('format', [hasSchema: true, schemaTitle: 'The format.', schemaFromOwnCode: true])]
+        assertEquals(1, run('SCHEMA-005', model([c])).size())
+    }
 }
