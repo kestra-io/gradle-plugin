@@ -53,4 +53,14 @@ class PackageRulesTest {
         ])
         assertTrue(run('PKG-003', m).isEmpty())
     }
+
+    @Test
+    void 'PKG-003 ignores a root log exporter alongside subpackaged tasks'() {
+        // a log exporter (or task runner) at the root is not "mixed task/trigger placement".
+        def m = model([
+            logExporter('io.kestra.plugin.acme.MyExporter'),
+            task('io.kestra.plugin.acme.events.Search')
+        ])
+        assertTrue(run('PKG-003', m).isEmpty())
+    }
 }
