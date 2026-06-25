@@ -1,0 +1,64 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.vanniktech.maven.publish' version '0.36.0'
+}
+
+group = 'io.kestra.gradle'
+version = rootProject.findProperty('version')
+println "Building ${project.group}:${project.name}:${project.version}"
+
+gradlePlugin {
+    plugins {
+        kestraRepositoryConventions {
+            id = 'io.kestra.gradle.repository-conventions'
+            implementationClass = 'io.kestra.gradle.RepositoryConventionsPlugin'
+            displayName = 'Kestra Repository Conventions'
+            description = 'Routes Maven dependency resolution through the GCP AR maven-remote proxy when MAVEN_REMOTE_TOKEN is set, avoiding Maven Central 429s on shared CI runners'
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates(project.group, project.name, project.version)
+    pom {
+        name = project.name
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/gradle-plugin"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/gradle-plugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+}
+
+test {
+    useJUnitPlatform()
+}
