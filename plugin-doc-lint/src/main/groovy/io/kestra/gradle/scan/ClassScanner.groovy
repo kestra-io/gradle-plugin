@@ -189,6 +189,15 @@ class ClassScanner {
             info.hasSchema = true
             info.schemaTitle = attrString(schema, 'title')
             info.schemaDescription = attrString(schema, 'description')
+            // If the same property is also declared on an inherited (non-own) getter with the same title,
+            // the plugin is only echoing a framework-provided title it cannot change (e.g. Data.From.TITLE),
+            // so treat it as inherited and exempt it from title value-judgements like SCHEMA-005.
+            Object[] inherited = accessorAnnotationAndOwner(owner, field.name, SCHEMA)
+            if (inherited != null
+                && !ownClasses.contains((String) inherited[1])
+                && attrString((Annotation) inherited[0], 'title') == info.schemaTitle) {
+                info.schemaFromOwnCode = false
+            }
         } else {
             Object[] accessor = accessorAnnotationAndOwner(owner, field.name, SCHEMA)
             if (accessor != null) {

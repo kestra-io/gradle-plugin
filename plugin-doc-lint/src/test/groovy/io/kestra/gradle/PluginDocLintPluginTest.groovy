@@ -328,4 +328,49 @@ class PluginDocLintPluginTest {
         assertFalse(result.output.contains('One#shared'))
         assertFalse(result.output.contains('Two#shared'))
     }
+
+    @Test
+    void 'SCHEMA-005 exempts an own field title that only echoes a non-own inherited getter title'() {
+        // A subproject stands in for kestra-core: its types are on the classpath but NOT in this
+        // plugin's classesDirs, so they are non-own (the plugin author cannot change them).
+        settingsFile.text = "rootProject.name = 'test-plugin'\ninclude 'framework'"
+        file('framework/build.gradle').text = "plugins { id 'java' }\n"
+        file('framework/src/main/java/io/swagger/v3/oas/annotations/media/Schema.java').text = '''
+            package io.swagger.v3.oas.annotations.media;
+            import java.lang.annotation.*;
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
+            public @interface Schema { String title() default ""; String description() default ""; }
+        '''.stripIndent()
+        // Non-own interface whose getter title ends with a period (mirrors core's Data.From.TITLE).
+        file('framework/src/main/java/io/kestra/core/models/property/StructuredFrom.java').text = '''
+            package io.kestra.core.models.property;
+            import io.swagger.v3.oas.annotations.media.Schema;
+            public interface StructuredFrom {
+                String TITLE = "Structured data items, as a map, a list, a URI, or a JSON string.";
+                @Schema(title = TITLE)
+                Object getFrom();
+            }
+        '''.stripIndent()
+        applyPlugin("pluginDocLint { ignoreFailures = true }\ndependencies { implementation project(':framework') }")
+        // 'from' re-declares the inherited title verbatim (echo); 'other' is a genuinely-own period title.
+        file('src/main/java/io/kestra/plugin/acme/Produce.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            import io.kestra.core.models.property.StructuredFrom;
+            import io.swagger.v3.oas.annotations.media.Schema;
+            public class Produce implements Task, StructuredFrom {
+                @Schema(title = "Structured data items, as a map, a list, a URI, or a JSON string.")
+                public Object from;
+                @Schema(title = "A genuinely own title.")
+                public String other;
+                public Object getFrom() { return from; }
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').build()
+        // Echoed inherited title -> exempt; genuinely-own period title -> still flagged.
+        assertFalse(result.output.contains('#from'))
+        assertTrue(result.output.contains('SCHEMA-005'))
+        assertTrue(result.output.contains('#other'))
+    }
 }
