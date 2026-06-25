@@ -81,7 +81,7 @@ class PluginDocLintPluginTest {
             import java.lang.annotation.*;
             @Retention(RetentionPolicy.RUNTIME)
             @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
-            public @interface Plugin { Example[] examples() default {}; }
+            public @interface Plugin { Example[] examples() default {}; boolean internal() default false; }
         '''.stripIndent()
         file('src/main/java/io/kestra/core/models/annotations/PluginProperty.java').text = '''
             package io.kestra.core.models.annotations;
@@ -327,6 +327,24 @@ class PluginDocLintPluginTest {
         assertTrue(result.output.contains('io.kestra.plugin.acme.Base#shared'))
         assertFalse(result.output.contains('One#shared'))
         assertFalse(result.output.contains('Two#shared'))
+    }
+
+    @Test
+    void 'a @Plugin(internal = true) class is exempt from documentation rules'() {
+        applyPlugin('pluginDocLint { ignoreFailures = true }')
+        // An internal helper: a concrete Task subclass that is registry-resolvable but not a catalog entry.
+        // It has no @Schema and no @Plugin examples, which would normally trip SCHEMA-001/PLUGIN-001.
+        file('src/main/java/io/kestra/plugin/acme/InternalHelper.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            import io.kestra.core.models.annotations.Plugin;
+            @Plugin(internal = true)
+            public class InternalHelper implements Task {
+                public String foo;
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').build()
+        assertFalse(result.output.contains('InternalHelper'))
     }
 
     @Test

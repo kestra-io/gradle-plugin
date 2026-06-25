@@ -131,6 +131,8 @@ class ClassScanner {
         Annotation plugin = find(clazz, PLUGIN)
         if (plugin != null) {
             info.hasPluginAnnotation = true
+            // @Plugin(internal = true): registry-resolvable but not a user-facing catalog entry -> exempt from doc rules.
+            info.internal = (attr(plugin, 'internal') ?: false) as boolean
             Object examples = attr(plugin, 'examples')
             if (examples != null) {
                 examples.each { Object ex -> info.examples << toExample((Annotation) ex) }
