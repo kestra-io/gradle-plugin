@@ -53,9 +53,11 @@ class Fixtures {
         f.hasSchema = opts.get('hasSchema', false)
         f.schemaTitle = opts.get('schemaTitle')
         f.schemaDescription = opts.get('schemaDescription')
+        f.schemaFromOwnCode = opts.get('schemaFromOwnCode', true)
         f.hasPluginProperty = opts.get('hasPluginProperty', false)
         f.pluginPropertyGroup = opts.get('pluginPropertyGroup')
         f.pluginPropertySecret = opts.get('pluginPropertySecret', false)
+        f.pluginPropertyFromOwnCode = opts.get('pluginPropertyFromOwnCode', true)
         return f
     }
 

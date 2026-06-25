@@ -36,6 +36,15 @@ class PluginModel {
     }
 
     /**
+     * Packages that contain at least one concrete task or trigger. PKG-003 uses this rather than
+     * {@link #packagesWithPlugins()} so a root-level log exporter or task runner alongside
+     * subpackaged tasks is not flagged as mixed task/trigger placement.
+     */
+    Set<String> packagesWithTasksOrTriggers() {
+        return classes.findAll { it.isConcreteTaskOrTrigger() }.collect { it.packageName }.toSet()
+    }
+
+    /**
      * Root package: the longest common dot-delimited prefix across all packages that
      * contain a plugin class. For a single-package plugin this is that package.
      */

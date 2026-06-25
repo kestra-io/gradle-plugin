@@ -15,7 +15,9 @@ class PropertyRules {
             new BaseRule('PROP-001', { PluginModel m ->
                 List<Violation> violations = []
                 m.documentablePlugins().each { ClassInfo c ->
-                    c.fields.findAll { it.hasPluginProperty }.each { FieldInfo f ->
+                    // Only own annotations: a group inherited from a framework type cannot be fixed in this plugin
+                    // (e.g. PollingTriggerInterface.getInterval() declares a bare @PluginProperty in core).
+                    c.fields.findAll { it.hasPluginProperty && it.pluginPropertyFromOwnCode }.each { FieldInfo f ->
                         if (!RuleConstants.PROPERTY_GROUPS.contains(f.pluginPropertyGroup)) {
                             violations << new Violation('PROP-001', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "@PluginProperty group '${f.pluginPropertyGroup ?: ''}' is not allowed. Use one of ${RuleConstants.PROPERTY_GROUPS.sort()}.")

@@ -44,7 +44,9 @@ class PackageRules {
 
             new BaseRule('PKG-003', { PluginModel m ->
                 String root = m.rootPackage()
-                Set<String> pkgs = m.packagesWithPlugins()
+                // Only tasks/triggers count here (matching the rule's wording): a root-level log
+                // exporter or task runner is not "mixed task placement".
+                Set<String> pkgs = m.packagesWithTasksOrTriggers()
                 if (root != null && pkgs.size() > 1 && pkgs.contains(root)) {
                     return [new Violation('PKG-003', root,
                         "Tasks/triggers are placed in both the root package and subpackages. Move root-level tasks into a subpackage.")]

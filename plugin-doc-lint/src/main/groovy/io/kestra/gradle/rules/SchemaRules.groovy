@@ -68,7 +68,8 @@ class SchemaRules {
                             "@Schema title ends with a period. Remove the trailing '.'.")
                     }
                     documentedFields(c).each { FieldInfo f ->
-                        if (endsWithPeriod(f.schemaTitle)) {
+                        // Only own titles: a title inherited from a framework type cannot be fixed in this plugin.
+                        if (f.schemaFromOwnCode && endsWithPeriod(f.schemaTitle)) {
                             violations << new Violation('SCHEMA-005', "${f.declaringClassName ?: c.fqcn}#${f.name}",
                                 "@Schema title ends with a period. Remove the trailing '.'.")
                         }
