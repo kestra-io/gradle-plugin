@@ -35,8 +35,9 @@ class MetadataRules {
                 String root = m.rootPackage()
                 List<Violation> violations = []
                 m.packagesWithPlugins().findAll { it != root }.sort().each { pkg ->
-                    String fileName = leafYaml(pkg)
-                    if (!new File(m.metadataDir(), fileName).exists()) {
+                    boolean exists = metadataNames(m, pkg).any { new File(m.metadataDir(), it).exists() }
+                    if (!exists) {
+                        String fileName = suggestedName(m, pkg)
                         violations << new Violation('META-002', "metadata/${fileName}",
                             "Missing metadata for subpackage '${pkg}'. Create src/main/resources/metadata/${fileName}.")
                     }
@@ -99,9 +100,64 @@ class MetadataRules {
         m.packagesWithPlugins().each { pkg ->
             targets[pkg] = (pkg == root)
                 ? rootMetadataFile(m)
-                : new File(m.metadataDir(), leafYaml(pkg))
+                : metadataFileFor(m, pkg)
         }
         return targets
+    }
+
+    /**
+     * Existing metadata file for a subpackage. A subpackage may be described either by its leaf
+     * name ({@code git.yaml}) or by its root-relative dotted path ({@code ee.git.yaml}). The dotted
+     * name is preferred when present because it is collision-free: two subpackages can share a leaf
+     * segment (e.g. {@code ee.git} and {@code git}) but never a relative path. Falls back to the
+     * leaf-named file (which may not exist) so callers that validate existing files skip cleanly
+     * when neither is present.
+     */
+    static File metadataFileFor(PluginModel m, String pkg) {
+        String rel = relativeName(m, pkg)
+        if (rel != null) {
+            File dotted = new File(m.metadataDir(), rel + '.yaml')
+            if (dotted.exists()) {
+                return dotted
+            }
+        }
+        return new File(m.metadataDir(), leafYaml(pkg))
+    }
+
+    /** Accepted metadata filenames for a subpackage: leaf name and the root-relative dotted name. */
+    static List<String> metadataNames(PluginModel m, String pkg) {
+        List<String> names = [leafYaml(pkg)]
+        String rel = relativeName(m, pkg)
+        if (rel != null && (rel + '.yaml') != names[0]) {
+            names << (rel + '.yaml')
+        }
+        return names
+    }
+
+    /**
+     * Filename to suggest when a subpackage has no metadata. Uses the leaf name, falling back to the
+     * collision-free dotted name when another plugin subpackage shares the same leaf.
+     */
+    static String suggestedName(PluginModel m, String pkg) {
+        String root = m.rootPackage()
+        String leaf = leafYaml(pkg)
+        long sharingLeaf = m.packagesWithPlugins().findAll { it != root }.count { leafYaml(it) == leaf }
+        if (sharingLeaf > 1) {
+            String rel = relativeName(m, pkg)
+            if (rel != null) {
+                return rel + '.yaml'
+            }
+        }
+        return leaf
+    }
+
+    /** Root-relative dotted package name, or null when {@code pkg} is not under the root. */
+    static String relativeName(PluginModel m, String pkg) {
+        String root = m.rootPackage()
+        if (root != null && pkg.startsWith(root + '.')) {
+            return pkg.substring(root.length() + 1)
+        }
+        return null
     }
 
     /** The root package's metadata file: index.yaml when present, else the leaf-named file. */

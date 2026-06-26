@@ -109,4 +109,32 @@ body: ""
         assertEquals(1, v.size())
         assertTrue(v[0].message.contains('io.kestra.plugin.acme'))
     }
+
+    @Test
+    void 'META-002 accepts a root-relative dotted metadata name'() {
+        // A subpackage may ship metadata under the collision-free dotted relative name.
+        write('index.yaml', 'group: io.kestra.plugin.acme\nname: a\ntitle: A\ndescription: d\nbody: ""')
+        write('ee.git.yaml', 'group: io.kestra.plugin.acme.ee.git\nname: g\ntitle: G\ndescription: d\nbody: ""')
+        def m = modelFor([
+            task('io.kestra.plugin.acme.Root'),
+            task('io.kestra.plugin.acme.ee.git.Push')
+        ])
+        assertTrue(run('META-002', m).isEmpty())
+        assertTrue(run('META-004', m).isEmpty())
+    }
+
+    @Test
+    void 'META-002 suggests dotted names when two subpackages share a leaf'() {
+        // ee.git and git both reduce to git.yaml; the suggestion must disambiguate per package.
+        write('index.yaml', 'group: io.kestra.plugin.acme\nname: a\ntitle: A\ndescription: d\nbody: ""')
+        def m = modelFor([
+            task('io.kestra.plugin.acme.Root'),
+            task('io.kestra.plugin.acme.ee.git.Push'),
+            task('io.kestra.plugin.acme.git.Sync')
+        ])
+        def v = run('META-002', m)
+        assertEquals(2, v.size())
+        assertTrue(v.any { it.location.endsWith('ee.git.yaml') })
+        assertTrue(v.any { it.location.endsWith('git.yaml') })
+    }
 }
