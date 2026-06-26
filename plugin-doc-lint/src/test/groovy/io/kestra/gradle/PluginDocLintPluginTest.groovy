@@ -348,6 +348,23 @@ class PluginDocLintPluginTest {
     }
 
     @Test
+    void 'a @Deprecated class is exempt from documentation rules'() {
+        applyPlugin('pluginDocLint { ignoreFailures = true }')
+        // A deprecated backward-compatibility alias: a concrete Task with no @Schema and no @Plugin
+        // examples, which would normally trip SCHEMA-001/PLUGIN-001. Being on its way out, it is exempt.
+        file('src/main/java/io/kestra/plugin/acme/LegacyTask.java').text = '''
+            package io.kestra.plugin.acme;
+            import io.kestra.core.models.tasks.Task;
+            @Deprecated
+            public class LegacyTask implements Task {
+                public String foo;
+            }
+        '''.stripIndent()
+        def result = runner('lintPluginDocs').build()
+        assertFalse(result.output.contains('LegacyTask'))
+    }
+
+    @Test
     void 'SCHEMA-005 exempts an own field title that only echoes a non-own inherited getter title'() {
         // A subproject stands in for kestra-core: its types are on the classpath but NOT in this
         // plugin's classesDirs, so they are non-own (the plugin author cannot change them).

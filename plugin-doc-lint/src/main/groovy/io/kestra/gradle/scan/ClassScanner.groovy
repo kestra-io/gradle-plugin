@@ -120,6 +120,8 @@ class ClassScanner {
         info.isInterface = clazz.isInterface()
         info.isAbstract = Modifier.isAbstract(clazz.modifiers)
         info.kind = kindOf(clazz)
+        // @Deprecated classes are backward-compatibility aliases on their way out -> exempt from doc rules.
+        info.deprecated = clazz.isAnnotationPresent(Deprecated)
 
         Annotation schema = find(clazz, SCHEMA)
         if (schema != null) {
