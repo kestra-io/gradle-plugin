@@ -162,13 +162,13 @@ class KestraSpotlessConventionsPluginTest {
     void 'spotless java target uses custom targetFile when provided'() {
         def srcDir = testProjectDir.resolve('src/main/java')
         Files.createDirectories(srcDir)
-        def javaFile = srcDir.resolve('TestClass.java')
-        javaFile.text = """
-            public class TestClass {
-                public static void main(String[] args) {
-                }
-            }
-        """
+
+        // Both files are badly formatted; only the targeted one should be reformatted.
+        def targeted = srcDir.resolve('Targeted.java')
+        targeted.text = "public class Targeted {public static void main(String[] args){}}"
+        def untouched = srcDir.resolve('Untouched.java')
+        def untouchedSource = "public class Untouched {public static void main(String[] args){}}"
+        untouched.text = untouchedSource
 
         buildFile.text = """
             plugins {
@@ -180,21 +180,14 @@ class KestraSpotlessConventionsPluginTest {
             }
         """
 
-        // First apply spotless to auto-fix formatting issues, then verify the check passes
-        def applyResult = GradleRunner.create()
+        GradleRunner.create()
                 .withProjectDir(testProjectDir.toFile())
                 .withPluginClasspath()
-                .withArguments('spotlessApply', '-PtargetFile=src/main/java/TestClass.java')
+                .withArguments('spotlessApply', '-PtargetFile=src/main/java/Targeted.java')
                 .build()
 
-        assertTrue(applyResult.output.contains('spotlessApply'))
-
-        def checkResult = GradleRunner.create()
-                .withProjectDir(testProjectDir.toFile())
-                .withPluginClasspath()
-                .withArguments('spotlessJavaCheck', '-PtargetFile=src/main/java/TestClass.java')
-                .build()
-
-        assertEquals(TaskOutcome.SUCCESS, checkResult.task(':spotlessJavaCheck').outcome)
+        // Targeted file got reformatted, the other file is left exactly as-is.
+        assertNotEquals("public class Targeted {public static void main(String[] args){}}", targeted.text.trim())
+        assertEquals(untouchedSource, untouched.text)
     }
 }

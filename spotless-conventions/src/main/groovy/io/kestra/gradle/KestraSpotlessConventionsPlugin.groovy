@@ -96,7 +96,12 @@ class KestraSpotlessConventionsPlugin implements Plugin<Project> {
         project.extensions.configure(SpotlessExtension) { ext ->
             ext.enforceCheck = false
             ext.java { javaSpec ->
-                javaSpec.target('src/**/*.java')
+                Object targetPath = project.findProperty('targetFile')
+                if (targetPath) {
+                    javaSpec.target(project.file(targetPath.toString()))
+                } else {
+                    javaSpec.target('src/**/*.java')
+                }
 
                 File spotlessDir = project.layout.buildDirectory.dir('spotless-config').get().asFile
                 javaSpec.importOrderFile(new File(spotlessDir, 'eclipse-kestra.importorder'))
