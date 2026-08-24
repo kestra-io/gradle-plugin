@@ -8,7 +8,7 @@ package io.kestra.gradle
  *     priority = [':core', ':tests']   // project paths whose Test tasks run unthrottled
  *     reservedSlots = 2                // optional: defaults to min(priority task count, maxWorkers - 1)
  *     enabled = true
- *     preferPriorityFirst = true       // adds soft shouldRunAfter ordering
+ *     preferPriorityFirst = true       // build the priority modules' chain first
  * }
  * </pre>
  */
@@ -26,9 +26,17 @@ class TestSchedulingExtension {
     boolean enabled = true
 
     /**
-     * When true, non-priority Test tasks declare a soft shouldRunAfter dependency on priority Test
-     * tasks so the scheduler prefers to start priority tasks first.
-     * Note: incompatible with --configure-on-demand; set to false if you use it.
+     * When true, the priority projects' copies of every requested lifecycle task are moved to the
+     * front of the requested task list, which puts them — and their whole dependency chain: their own
+     * compile/jar tasks plus those of every upstream project — at the head of the execution plan.
+     *
+     * This is what makes the reservation useful. A priority Test task cannot start until its compile
+     * chain is done; while that chain queues behind dozens of light-module compilations, the reserved
+     * slots sit idle. Heading the plan lets the chain take workers first, so the priority tests
+     * become dependency-ready as early as possible.
+     *
+     * Only plain lifecycle names are rewritten. Invocations carrying task options (--tests, --rerun)
+     * are left untouched, as are already project-qualified names and excluded tasks.
      */
     boolean preferPriorityFirst = true
 }

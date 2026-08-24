@@ -55,9 +55,23 @@ class TestSchedulingPluginTest {
     }
 
     // Creates a subproject with a fake Test task that sleeps to simulate duration.
-    private void writeSubproject(String name, int sleepMs = 200) {
+    // dependsOnProjects wires a project dependency, so this project's test cannot start before
+    // those projects are compiled and jarred. compileSleepMs widens the compile step so scheduling
+    // waves are distinguishable in timing.txt.
+    private void writeSubproject(String name, int sleepMs = 200, List<String> dependsOnProjects = [], int compileSleepMs = 0) {
+        String deps = dependsOnProjects.collect { "implementation project(':${it}')" }.join('\n                ')
         writeFile("${name}/build.gradle", """
             plugins { id 'java' }
+            dependencies {
+                ${deps}
+            }
+            tasks.named('compileJava') {
+                doFirst {
+                    def f = rootProject.file('timing.txt')
+                    synchronized (f) { f << "compile:${name}:\${System.nanoTime()}\\n" }
+                    Thread.sleep(${compileSleepMs})
+                }
+            }
             test {
                 doFirst {
                     def f = rootProject.file('timing.txt')
@@ -68,6 +82,10 @@ class TestSchedulingPluginTest {
                     synchronized (f) { f << "end:${name}:\${System.nanoTime()}\\n" }
                 }
             }
+        """.stripIndent())
+        // A main class so compileJava has sources — without it the task is NO-SOURCE and never runs.
+        writeFile("${name}/src/main/java/${name.capitalize()}Main.java", """
+            public class ${name.capitalize()}Main { public static String hello() { return "${name}"; } }
         """.stripIndent())
         // A do-nothing test class so Gradle's Test task actually executes.
         writeFile("${name}/src/test/java/Placeholder.java", """
@@ -178,5 +196,76 @@ class TestSchedulingPluginTest {
         assertFalse(result.output.contains('Armed'),
             'Service must not arm when no non-priority tasks are in the graph')
         assertEquals(TaskOutcome.SUCCESS, result.task(':heavy1:test')?.outcome)
+    }
+
+    /** Reads timing.txt and returns the module names in the order their compileJava started. */
+    private List<String> compileOrder() {
+        file('timing.txt').readLines()
+            .findAll { it.startsWith('compile:') }
+            .collect { it.split(':')[1] }
+    }
+
+    // Gradle expands a lifecycle task name over projects in alphabetical order, so 'zheavy' and its
+    // upstream 'zupstream' land at the tail of the plan by default — the starvation this plugin fixes.
+    private static final List<String> LIGHT = ['light1', 'light2', 'light3', 'light4', 'light5']
+
+    private void writeChainBuild(String extensionBlock = "priority = [':zheavy']") {
+        writeSettings(LIGHT + ['zheavy', 'zupstream'], extensionBlock)
+        writeRootBuildGradle()
+        LIGHT.each { writeSubproject(it, 200, [], 400) }
+        writeSubproject('zupstream', 200, [], 400)
+        writeSubproject('zheavy', 200, ['zupstream'], 400)
+    }
+
+    @Test
+    void 'priority compile chain is scheduled in the first wave'() {
+        writeChainBuild()
+
+        def result = runner('test', '--parallel', '--max-workers=2').build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':zheavy:test')?.outcome)
+        assertTrue(result.output.contains('[test-scheduling] Prioritised in the execution plan: :zheavy:test'),
+            "Expected the plan to be reordered, got: ${result.output}")
+        def order = compileOrder()
+        assertFalse(order.isEmpty(), 'No compile timings recorded — fixture is broken')
+        assertTrue(order.indexOf('zupstream') < 2,
+            "Expected :zupstream (zheavy's compile chain) in the first scheduling wave, got: ${order}")
+    }
+
+    @Test
+    void 'preferPriorityFirst=false leaves the chain at the tail of the plan'() {
+        writeChainBuild("priority = [':zheavy']; preferPriorityFirst = false")
+
+        def result = runner('test', '--parallel', '--max-workers=2').build()
+
+        assertFalse(result.output.contains('Prioritised in the execution plan'),
+            'Plan must not be reordered when preferPriorityFirst is false')
+        def order = compileOrder()
+        assertFalse(order.isEmpty(), 'No compile timings recorded — fixture is broken')
+        assertTrue(order.indexOf('zupstream') >= 2,
+            "Expected :zupstream to be scheduled late without the fix, got: ${order}")
+    }
+
+    @Test
+    void 'task options suppress the plan reordering'() {
+        writeChainBuild()
+
+        // --tests binds to the task name it follows; prepending :zheavy:test would run it unfiltered.
+        def result = runner('test', '--tests', 'Placeholder', '--parallel', '--max-workers=2').build()
+
+        assertFalse(result.output.contains('Prioritised in the execution plan'),
+            'Plan must not be reordered when task options are present')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':zheavy:test')?.outcome)
+    }
+
+    @Test
+    void 'excluded priority tasks are not re-added by the reordering'() {
+        writeChainBuild()
+
+        def result = runner('test', '-x', ':zheavy:test', '--parallel', '--max-workers=2').build()
+
+        assertFalse(result.output.contains('Prioritised in the execution plan'),
+            'An excluded priority task must not be prepended to the requested tasks')
+        assertNull(result.task(':zheavy:test'))
     }
 }
