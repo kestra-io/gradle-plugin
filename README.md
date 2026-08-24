@@ -6,6 +6,7 @@ Gradle plugins that help build Kestra plugins.
 - `io.kestra.gradle.develocity-conventions` - configures Develocity build scans and remote build cache.
 - `io.kestra.gradle.inject-bom-versions` - injects missing versions for BOM-managed dependencies in the POM.
 - `io.kestra.gradle.plugin-doc-lint` - enforces plugin documentation completeness at build time.
+- `io.kestra.gradle.test-scheduling` - reserves worker slots for heavy test modules so they run first and light modules expand to all slots once the heavy ones finish.
 
 ## plugin-doc-lint
 
@@ -105,6 +106,58 @@ Documentation (`src/main/resources/doc/`):
 PLUGIN-004 is checked against the source text, because reflection cannot tell an explicit
 `lang = "yaml"` from the default. META-003 requires `body` to be present but allows it to be
 empty, matching how current plugins ship it.
+
+## test-scheduling
+
+Reserves worker slots for high-priority test modules so they are not starved by lighter modules
+that become dependency-ready first.
+
+**Problem**: Gradle's scheduler has no duration awareness. When a multi-module build runs with
+`--parallel`, small modules that compile quickly can grab every worker slot, forcing the large
+modules to start late and set the critical path.
+
+**Behaviour**: priority projects run unthrottled; non-priority Test tasks share
+`maxWorkers - reservedSlots` concurrent slots while any priority task is still running. Once all
+priority tasks finish the reserved slots are released and non-priority tasks expand to the full
+worker count.
+
+### Requirements
+
+- `./gradlew test --parallel --max-workers=N` (N > 1).
+- Applied from `settings.gradle`, not `build.gradle`.
+- `org.gradle.parallel=true` in `gradle.properties`.
+
+### Usage
+
+```groovy
+// settings.gradle
+plugins {
+    id 'io.kestra.gradle.test-scheduling' version '<version>'
+}
+
+kestraTestScheduling {
+    priority = [':core', ':tests']   // project paths whose Test tasks run unthrottled
+    // reservedSlots = 2             // default: auto (min(priority task count, maxWorkers - 1))
+    // enabled = true
+    // preferPriorityFirst = true    // soft shouldRunAfter ordering; disable with --configure-on-demand
+}
+```
+
+### Edge cases
+
+| Scenario | Behaviour |
+|---|---|
+| `--max-workers=1` | Service not armed; build runs normally |
+| `-x :core:test` (priority task excluded) | Missing priority tasks ignored; reserved recalculated |
+| No non-priority Test tasks in the graph | Service not armed |
+| Priority task fails with `--continue` | Slot released via `BuildEventsListenerRegistry`, not `doLast` |
+| Configuration cache hit | Service is never armed (config skipped); light tasks run unthrottled |
+
+### Configuration cache note
+
+On a configuration cache hit, Gradle skips the configuration phase, so the service is never
+armed. The build runs unthrottled — a safe degradation. Enable the config cache only if your
+build is already compatible with it.
 
 ## Releasing
 
