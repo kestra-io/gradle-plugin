@@ -75,7 +75,6 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
     // independently of the heartbeat tick it rides on. No entry yet == never announced.
     protected final Map<String, Long> heapLastAnnounceMillis = new ConcurrentHashMap<>()
     protected final List<String> failureLabels = Collections.synchronizedList(new ArrayList<>())
-    protected final List<GithubSummary.SlowEntry> slowEntries = Collections.synchronizedList(new ArrayList<>())
     protected final AtomicInteger testIdSeq = new AtomicInteger()
 
     protected ScheduledExecutorService tickExecutor
@@ -328,10 +327,6 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
                 break
         }
         printLines(lines)
-
-        if (duration >= slowThreshold) {
-            slowEntries << new GithubSummary.SlowEntry(label: "${moduleName} › ${label}", durationMillis: duration)
-        }
     }
 
     /** Called from the root (task-level) afterSuite -- prints the per-task totals line. */
@@ -608,7 +603,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         printLines(lines)
 
         if (githubJobSummary && GithubAnnotations.isGithubActions()) {
-            GithubSummary.write(new ArrayList<>(perModuleStats.values()), new ArrayList<>(failureLabels), new ArrayList<>(slowEntries), slowThreshold)
+            GithubSummary.write(new ArrayList<>(perModuleStats.values()), new ArrayList<>(failureLabels))
         }
     }
 
