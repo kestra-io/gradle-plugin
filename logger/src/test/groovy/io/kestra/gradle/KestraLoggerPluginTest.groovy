@@ -197,7 +197,11 @@ class KestraLoggerPluginTest {
     void 'heartbeat announces a still-running test'() {
         writeSettings(['modA'], 'test { slowThreshold = 100000; heartbeat { threshold = 200; interval = 200 } }')
         writeModuleBuild('modA')
-        writeSampleTest('modA', 900)
+        // The ticker polls once per second, anchored from configure() (settings evaluation) --
+        // well before :modA:test itself starts running several tasks later -- so the alignment
+        // between "test starts" and "next tick" is effectively random within that 1s window.
+        // The sleep needs real margin over 1000ms so a tick reliably lands while it's still running.
+        writeSampleTest('modA', 1800)
 
         BuildResult result = runner('test', '--continue', '--tests', 'io.kestra.sample.SampleTest.slow').build()
 
