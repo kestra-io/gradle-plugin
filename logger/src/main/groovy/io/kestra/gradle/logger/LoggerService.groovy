@@ -49,7 +49,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
     protected volatile boolean showFullStackTraces = true
     protected volatile boolean showCauses = true
     protected volatile boolean showPassedStandardStreams = false
-    protected volatile boolean showPassedStandardError = true
+    protected volatile boolean showPassedStandardError = false
     protected volatile boolean showSkippedStandardStreams = true
     protected volatile boolean showFailedStandardStreams = true
     protected volatile List<String> stackTraceFilters = []

@@ -119,8 +119,28 @@ class KestraLoggerPluginTest {
     }
 
     @Test
-    void 'showPassedStandardError defaults to true, printing a passing test stderr but keeping its stdout hidden'() {
+    void 'showPassedStandardError defaults to false, hiding a passing test stderr too'() {
         writeSettings(['modA'])
+        writeModuleBuild('modA')
+        writeFile('modA/src/test/java/io/kestra/sample/PassOnlyTest.java', '''
+            package io.kestra.sample;
+            import org.junit.jupiter.api.Test;
+            public class PassOnlyTest {
+                @Test void ok() {
+                    System.err.println("stderr should stay hidden");
+                }
+            }
+        '''.stripIndent())
+
+        BuildResult result = runner('test').build()
+
+        assertFalse(result.output.contains('stderr should stay hidden'),
+            'showPassedStandardError defaults to false, so a passing test\'s buffered stderr must stay hidden')
+    }
+
+    @Test
+    void 'showPassedStandardError=true prints a passing test stderr but keeps its stdout hidden'() {
+        writeSettings(['modA'], 'test { showPassedStandardError = true }')
         writeModuleBuild('modA')
         writeFile('modA/src/test/java/io/kestra/sample/PassOnlyTest.java', '''
             package io.kestra.sample;
@@ -136,29 +156,9 @@ class KestraLoggerPluginTest {
         BuildResult result = runner('test').build()
 
         assertTrue(result.output.contains('stderr should be shown'),
-            'showPassedStandardError defaults to true, so a passing test\'s buffered stderr must print')
+            'showPassedStandardError=true must print a passing test\'s buffered stderr')
         assertFalse(result.output.contains('stdout should stay hidden'),
-            'showPassedStandardError must not print a passing test\'s stdout')
-    }
-
-    @Test
-    void 'showPassedStandardError=false hides a passing test stderr too'() {
-        writeSettings(['modA'], 'test { showPassedStandardError = false }')
-        writeModuleBuild('modA')
-        writeFile('modA/src/test/java/io/kestra/sample/PassOnlyTest.java', '''
-            package io.kestra.sample;
-            import org.junit.jupiter.api.Test;
-            public class PassOnlyTest {
-                @Test void ok() {
-                    System.err.println("stderr should stay hidden");
-                }
-            }
-        '''.stripIndent())
-
-        BuildResult result = runner('test').build()
-
-        assertFalse(result.output.contains('stderr should stay hidden'),
-            'showPassedStandardError=false must hide a passing test\'s buffered stderr')
+            'showPassedStandardError=true must not print a passing test\'s stdout')
     }
 
     @Test
