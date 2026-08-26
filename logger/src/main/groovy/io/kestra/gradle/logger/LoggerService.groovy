@@ -47,6 +47,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
     protected volatile boolean showFullStackTraces = true
     protected volatile boolean showCauses = true
     protected volatile boolean showPassedStandardStreams = false
+    protected volatile boolean showPassedStandardError = true
     protected volatile boolean showSkippedStandardStreams = true
     protected volatile boolean showFailedStandardStreams = true
     protected volatile List<String> stackTraceFilters = []
@@ -90,6 +91,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         showFullStackTraces = ext.test.showFullStackTraces
         showCauses = ext.test.showCauses
         showPassedStandardStreams = ext.test.showPassedStandardStreams
+        showPassedStandardError = ext.test.showPassedStandardError
         showSkippedStandardStreams = ext.test.showSkippedStandardStreams
         showFailedStandardStreams = ext.test.showFailedStandardStreams
         stackTraceFilters = new ArrayList<>(ext.test.stackTraceFilters)
@@ -248,7 +250,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         synchronized (running) {
             event.message.readLines().each { line ->
                 if (running.outputLines.size() < 500) {
-                    running.outputLines << line
+                    running.outputLines << new OutputLine(destination: event.destination, text: line)
                 }
             }
         }
@@ -267,7 +269,11 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         switch (result.resultType) {
             case TestResult.ResultType.SUCCESS:
                 lines << "${prefix}${Ansi.wrap('✔', Ansi.GREEN, colors)} ${label}${durationSuffix(duration, colors)}"
-                if (showPassedStandardStreams) lines.addAll(streamLines(prefix, label, running, colors))
+                if (showPassedStandardStreams) {
+                    lines.addAll(streamLines(prefix, label, running, colors, null))
+                } else if (showPassedStandardError) {
+                    lines.addAll(streamLines(prefix, label, running, colors, TestOutputEvent.Destination.StdErr))
+                }
                 break
             case TestResult.ResultType.SKIPPED:
                 String skipContent = "⊖ ${label}  ${Durations.format(duration)}"
@@ -403,12 +409,15 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         return abbreviated.join('.')
     }
 
-    protected List<String> streamLines(String prefix, String label, RunningTest running, boolean colors) {
+    /** {@code onlyDestination} null means both stdout and stderr; otherwise only that one is rendered. */
+    protected List<String> streamLines(String prefix, String label, RunningTest running, boolean colors,
+                                        TestOutputEvent.Destination onlyDestination = null) {
         if (running == null || running.outputLines.isEmpty()) return []
         List<String> result = []
         synchronized (running) {
-            running.outputLines.each { line ->
-                result << "${prefix}${Ansi.wrap('│', Ansi.GRAY, colors)} ${label} │ ${line}"
+            running.outputLines.each { OutputLine line ->
+                if (onlyDestination != null && line.destination != onlyDestination) return
+                result << "${prefix}${Ansi.wrap('│', Ansi.GRAY, colors)} ${label} │ ${line.text}"
             }
         }
         return result
@@ -477,7 +486,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
             List<String> lines = []
             lines << "${prefix}${Ansi.wrap('⏱', Ansi.YELLOW, colors)}  ${label} running since ${Durations.format(elapsed)}"
             if (heartbeatDisplayOutput) {
-                List<String> fresh
+                List<OutputLine> fresh
                 synchronized (running) {
                     int total = running.outputLines.size()
                     int from = running.streamedLines
@@ -485,7 +494,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
                     running.streamedLines = total
                 }
                 String bar = Ansi.wrap('⏱', Ansi.YELLOW, colors)
-                fresh.each { line -> lines << "${prefix}${bar} ${Ansi.wrap('│', Ansi.GRAY, colors)} ${line}" }
+                fresh.each { OutputLine line -> lines << "${prefix}${bar} ${Ansi.wrap('│', Ansi.GRAY, colors)} ${line.text}" }
             }
             printLines(lines)
         }
@@ -594,6 +603,11 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         long startMillis
         long lastHeartbeatMillis = 0
         int streamedLines = 0
-        final List<String> outputLines = Collections.synchronizedList(new ArrayList<>())
+        final List<OutputLine> outputLines = Collections.synchronizedList(new ArrayList<>())
+    }
+
+    protected static class OutputLine {
+        TestOutputEvent.Destination destination
+        String text
     }
 }
