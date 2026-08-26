@@ -6,6 +6,7 @@ import org.gradle.api.services.BuildServiceParameters
 import org.gradle.api.tasks.testing.TestDescriptor
 import org.gradle.api.tasks.testing.TestOutputEvent
 import org.gradle.api.tasks.testing.TestResult
+import org.gradle.tooling.Failure
 import org.gradle.tooling.events.FinishEvent
 import org.gradle.tooling.events.OperationCompletionListener
 import org.gradle.tooling.events.task.TaskFailureResult
@@ -41,6 +42,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
     protected volatile boolean taskLineEnabled = true
     protected volatile boolean taskColors = true
     protected volatile Set<String> taskSkipOutcomes = ['NO-SOURCE'] as Set
+    protected volatile boolean showCompileErrors = true
 
     protected volatile int slowThreshold = 2000
     protected volatile boolean showExceptions = true
@@ -84,6 +86,7 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         taskLineEnabled = ext.enabled && ext.task.enabled
         taskColors = ext.task.colors
         taskSkipOutcomes = new HashSet<>(ext.task.skipOutcomes)
+        showCompileErrors = ext.task.showCompileErrors
 
         slowThreshold = ext.test.slowThreshold
         showExceptions = ext.test.showExceptions
@@ -147,7 +150,48 @@ abstract class LoggerService implements BuildService<BuildServiceParameters.None
         boolean colors = colorsEnabled(taskColors)
         String prefix = Prefix.build(moduleName, taskName, colors)
         String content = "${plainIconForOutcome(outcome)} ${outcome}${' ' * Math.max(1, 10 - outcome.length())}${Durations.format(duration)}"
-        printLines([("${prefix}${Ansi.wrap(content, outcomeColor(outcome), colors)}" as String)])
+        List<String> lines = [("${prefix}${Ansi.wrap(content, outcomeColor(outcome), colors)}" as String)]
+
+        if (outcome == 'FAILED' && showCompileErrors && isJavaCompileTask(taskName) && tfe.result instanceof TaskFailureResult) {
+            lines.addAll(compileFailureLines(prefix, (TaskFailureResult) tfe.result, colors))
+        }
+        printLines(lines)
+    }
+
+    /** Matches compileJava, compileTestJava, compile<SourceSet>Java, ... -- not compileGroovy etc. */
+    protected static boolean isJavaCompileTask(String taskName) {
+        return taskName ==~ /compile.*Java/
+    }
+
+    /**
+     * Renders each javac error (not warning -- a failing compile's output is often mostly warnings,
+     * and the error is the one line that actually needs to stand out) found in the failure's
+     * description under the task's own prefix, instead of leaving it buried in the raw block Gradle
+     * would otherwise only print once, at the very end of the build. There is no structured event for
+     * this -- see {@link CompileDiagnostics}: {@code Failure.getProblems()} (the Tooling API's Problems
+     * API) comes back empty for compile failures reached via {@code BuildEventsListenerRegistry} on
+     * Gradle 9.5.1, even though the exception's own {@code description} already carries the full,
+     * already-formatted diagnostic text.
+     */
+    protected List<String> compileFailureLines(String prefix, TaskFailureResult result, boolean colors) {
+        List<CompileDiagnostics.Diagnostic> errors = allFailures(result.failures)
+            .collectMany { Failure f -> CompileDiagnostics.parse(f.description) }
+            .findAll { CompileDiagnostics.Diagnostic d -> d.severity == 'error' }
+        if (errors.isEmpty()) return []
+
+        List<String> lines = []
+        String bar = Ansi.wrap('│', Ansi.GRAY, colors)
+        errors.each { CompileDiagnostics.Diagnostic d ->
+            lines << "${prefix}${bar} ${Ansi.wrap("✖ ${d.file}:${d.line}  error: ${d.message}", Ansi.RED, colors)}"
+            d.context.each { ctx -> lines << "${prefix}${bar}     ${ctx}" }
+        }
+        return lines
+    }
+
+    protected static List<Failure> allFailures(List<Failure> failures) {
+        List<Failure> all = []
+        failures.each { Failure f -> all << f; all.addAll(allFailures(f.causes)) }
+        return all
     }
 
     /** Called from every task's own doFirst -- BuildEventsListenerRegistry has no start event. */

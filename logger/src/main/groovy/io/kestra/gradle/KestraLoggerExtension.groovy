@@ -12,6 +12,7 @@ package io.kestra.gradle
  *         enabled = true
  *         colors = true
  *         skipOutcomes = ['NO-SOURCE']
+ *         showCompileErrors = true
  *     }
  *
  *     test {
@@ -81,6 +82,13 @@ class KestraLoggerExtension {
         boolean colors = true
         /** Outcomes that are not worth a line — the task ran so fast it is just noise. */
         Set<String> skipOutcomes = ['NO-SOURCE'] as Set
+        /**
+         * For a failed compileJava/compileTestJava/compile&lt;SourceSet&gt;Java task, renders each
+         * javac error (not warning — the error is what needs to stand out, and a failing compile's
+         * output is often mostly warnings) under the task's own prefix, right where its FAILED line
+         * prints — instead of leaving it buried in the raw block at the very end of the build.
+         */
+        boolean showCompileErrors = true
     }
 
     static class TestConfig {

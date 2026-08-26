@@ -194,6 +194,88 @@ class KestraLoggerPluginTest {
     }
 
     @Test
+    void 'compileJava failure alongside warnings renders only the error, not the warnings'() {
+        writeSettings(['modA'])
+        writeFile('modA/build.gradle', """
+            plugins { id 'java' }
+            repositories { mavenCentral() }
+            compileJava {
+                options.compilerArgs += ['-Xlint:deprecation']
+            }
+        """.stripIndent())
+        writeFile('modA/src/main/java/io/kestra/sample/Broken.java', '''
+            package io.kestra.sample;
+            import java.util.Date;
+            public class Broken {
+                public static void main(String[] a) {
+                    Date d = new Date(2020, 1, 1);
+                    undefinedMethodCall();
+                }
+            }
+        '''.stripIndent())
+
+        BuildResult result = runner('compileJava', '--continue').buildAndFail()
+
+        assertTrue(result.output.contains('[modA:compileJava] ✖ FAILED'),
+            "Expected the usual FAILED task line, got:\n${result.output}")
+        assertTrue(result.output.contains('Broken.java:7  error: cannot find symbol'),
+            "Expected the error rendered under the task prefix, got:\n${result.output}")
+        // Gradle's own default echo of the raw compiler block (unprefixed) still mentions the warning
+        // during task execution -- this only needs to prove *our own rendering* drops it, i.e. no
+        // "[modA:compileJava] │ ..." line ever mentions it.
+        boolean renderedWarning = result.output.readLines().any {
+            it.startsWith('[modA:compileJava] │') && it.contains('warning')
+        }
+        assertFalse(renderedWarning, "Expected the deprecation warning to be dropped from our own rendering, got:\n${result.output}")
+    }
+
+    @Test
+    void 'compileJava failure renders each javac diagnostic under the task prefix'() {
+        writeSettings(['modA'])
+        writeModuleBuild('modA')
+        writeFile('modA/src/main/java/io/kestra/sample/Broken.java', '''
+            package io.kestra.sample;
+            public class Broken {
+                public static void main(String[] a) {
+                    int x = "not an int";
+                    undefinedMethodCall();
+                }
+            }
+        '''.stripIndent())
+
+        BuildResult result = runner('compileJava', '--continue').buildAndFail()
+
+        assertTrue(result.output.contains('[modA:compileJava] ✖ FAILED'),
+            "Expected the usual FAILED task line, got:\n${result.output}")
+        assertTrue(result.output.contains('Broken.java:5  error: incompatible types: String cannot be converted to int'),
+            "Expected the first javac diagnostic rendered under the task prefix, got:\n${result.output}")
+        assertTrue(result.output.contains('Broken.java:6  error: cannot find symbol'),
+            "Expected the second javac diagnostic rendered under the task prefix, got:\n${result.output}")
+        assertTrue(result.output.contains('int x = "not an int";'),
+            "Expected the source snippet context line, got:\n${result.output}")
+    }
+
+    @Test
+    void 'showCompileErrors disabled keeps only the FAILED line'() {
+        writeSettings(['modA'], 'task { showCompileErrors = false }')
+        writeModuleBuild('modA')
+        writeFile('modA/src/main/java/io/kestra/sample/Broken.java', '''
+            package io.kestra.sample;
+            public class Broken {
+                public static void main(String[] a) {
+                    int x = "not an int";
+                }
+            }
+        '''.stripIndent())
+
+        BuildResult result = runner('compileJava', '--continue').buildAndFail()
+
+        assertTrue(result.output.contains('[modA:compileJava] ✖ FAILED'))
+        assertFalse(result.output.contains('[modA:compileJava] │'),
+            "Expected no diagnostic lines when showCompileErrors is disabled, got:\n${result.output}")
+    }
+
+    @Test
     void 'heartbeat announces a still-running test'() {
         writeSettings(['modA'], 'test { slowThreshold = 100000; heartbeat { threshold = 200; interval = 200 } }')
         writeModuleBuild('modA')
