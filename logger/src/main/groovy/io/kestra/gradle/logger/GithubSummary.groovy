@@ -12,7 +12,7 @@ class GithubSummary {
         return path ? new File(path) : null
     }
 
-    static void write(List<ModuleStats> perModule, List<String> failureLabels, List<SlowEntry> slowest, int slowThreshold) {
+    static void write(List<ModuleStats> perModule, List<String> failureLabels) {
         File file = summaryFile()
         if (file == null) return
 
@@ -34,11 +34,6 @@ class GithubSummary {
             failureLabels.each { sb << "- ${it}\n" }
         }
 
-        if (slowest) {
-            sb << "\n### Slowest (>= ${slowThreshold}ms)\n\n"
-            slowest.each { SlowEntry e -> sb << "- ${e.label} — ${Durations.format(e.durationMillis)}\n" }
-        }
-
         file << sb.toString()
     }
 
@@ -48,10 +43,5 @@ class GithubSummary {
         long durationMillis
         long peakHeapUsedBytes = -1 // -1 = "n/a": no GC observed, or heap capture disabled
         long peakHeapCapacityBytes = -1
-    }
-
-    static class SlowEntry {
-        String label
-        long durationMillis
     }
 }
