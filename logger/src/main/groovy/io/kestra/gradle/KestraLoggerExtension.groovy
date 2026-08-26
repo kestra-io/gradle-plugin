@@ -94,11 +94,10 @@ class KestraLoggerExtension {
         boolean showPassedStandardStreams = false
         /**
          * Passing tests still print their buffered stderr even though showPassedStandardStreams is
-         * false -- stdout stays hidden. Defaults to true since stderr output from a passing test is
-         * usually a warning worth seeing. Ignored (redundant) when showPassedStandardStreams is true,
+         * false -- stdout stays hidden. Ignored (redundant) when showPassedStandardStreams is true,
          * since that already shows both streams.
          */
-        boolean showPassedStandardError = true
+        boolean showPassedStandardError = false
         boolean showSkippedStandardStreams = true
         boolean showFailedStandardStreams = true
         /**

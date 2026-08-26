@@ -230,7 +230,7 @@ kestraLogger {
         showFullStackTraces = true
         showCauses = true
         showPassedStandardStreams = false
-        showPassedStandardError = true    // stderr still prints for passing tests even with the above false
+        showPassedStandardError = false   // true to still print stderr for passing tests even with the above false
         showSkippedStandardStreams = true
         showFailedStandardStreams = true
         showStart = false       // true when GitHub Actions step debug logging is on (RUNNER_DEBUG=1)
@@ -265,7 +265,7 @@ kestraLogger {
 | `task` | `skipOutcomes` | `[NO-SOURCE]` | Outcomes not worth a line |
 | `test` | `slowThreshold` | `2000` | ms at/above which a duration renders red; half renders yellow |
 | `test` | `showPassedStandardStreams` | `false` | Passing tests are always one line regardless |
-| `test` | `showPassedStandardError` | `true` | Prints a passing test's buffered stderr even though stdout stays hidden; redundant when `showPassedStandardStreams = true` |
+| `test` | `showPassedStandardError` | `false` | `true` prints a passing test's buffered stderr even though stdout stays hidden; redundant when `showPassedStandardStreams = true` |
 | `test` | `showStart` | `false`, or `true` when `RUNNER_DEBUG=1` | Print a line the moment each test starts, not just when it finishes |
 | `test` | `fullNamespace` | `false` | `true` prints the package in full instead of collapsing it |
 | `test.heartbeat` | `threshold` / `interval` | `5000` / `5000` | First heartbeat line, then cadence, for a still-running test |
