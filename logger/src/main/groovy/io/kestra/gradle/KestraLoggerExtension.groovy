@@ -21,6 +21,7 @@ package io.kestra.gradle
  *         showFullStackTraces = true
  *         showCauses = true
  *         showPassedStandardStreams = false
+ *         showPassedStandardError = false
  *         showSkippedStandardStreams = true
  *         showFailedStandardStreams = true
  *         showStart = false   // true when GITHUB_ACTIONS step debug logging (RUNNER_DEBUG=1) is on
@@ -99,6 +100,13 @@ class KestraLoggerExtension {
         boolean showCauses = true
         /** Passing tests are always a single line; this only controls their buffered stdout/stderr. */
         boolean showPassedStandardStreams = false
+        /**
+         * Passing tests still print their buffered stderr even though showPassedStandardStreams is
+         * false -- stdout stays hidden. Defaults to true since stderr output from a passing test is
+         * usually a warning worth seeing. Ignored (redundant) when showPassedStandardStreams is true,
+         * since that already shows both streams.
+         */
+        boolean showPassedStandardError = true
         boolean showSkippedStandardStreams = true
         boolean showFailedStandardStreams = true
         /**
