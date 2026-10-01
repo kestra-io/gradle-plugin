@@ -16,7 +16,7 @@ gradlePlugin {
             id = 'io.kestra.gradle.repository-conventions'
             implementationClass = 'io.kestra.gradle.RepositoryConventionsPlugin'
             displayName = 'Kestra Repository Conventions'
-            description = 'Routes Maven dependency resolution through the GCP AR maven-remote proxy when MAVEN_REMOTE_TOKEN is set, avoiding Maven Central 429s on shared CI runners'
+            description = 'Routes Maven dependency resolution through the GCP AR maven-remote proxy when MAVEN_REMOTE_TOKEN is set, avoiding Maven Central 429s on shared CI runners, and embeds a CycloneDX SBOM of the runtime classpath in the jar'
         }
     }
 }
@@ -51,9 +51,12 @@ mavenPublishing {
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
+    implementation 'org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.4.1'
+
     testImplementation gradleTestKit()
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
