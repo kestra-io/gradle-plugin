@@ -37,6 +37,10 @@ class RepositoryConventionsPlugin implements Plugin<Project> {
     }
 
     private static void configureSbom(Project project) {
+        if (project == project.rootProject) {
+            configureAggregateSbom(project)
+        }
+
         project.plugins.withId("java") {
             project.pluginManager.apply("org.cyclonedx.bom")
 
@@ -57,6 +61,23 @@ class RepositoryConventionsPlugin implements Plugin<Project> {
             project.plugins.withId("com.gradleup.shadow") {
                 project.tasks.named("shadowJar", Jar, embed)
             }
+        }
+    }
+
+    private static void configureAggregateSbom(Project project) {
+        // base gives a root aggregator project a build task to hook the merged SBOM on
+        project.pluginManager.apply("base")
+        project.pluginManager.apply("org.cyclonedx.bom")
+
+        // CycloneDX registers direct tasks on every subproject from the root, including ones that never apply this plugin
+        project.allprojects { p ->
+            p.tasks.withType(CyclonedxDirectTask).configureEach { task ->
+                task.includeConfigs.set(["runtimeClasspath"])
+            }
+        }
+
+        project.tasks.named("build") {
+            it.dependsOn("cyclonedxBom")
         }
     }
 }

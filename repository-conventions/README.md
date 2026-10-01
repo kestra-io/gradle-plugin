@@ -33,3 +33,9 @@ dependencies) at `build/sbom/java.json`. It runs after compilation and is embedd
 `build` / `assemble` produces it. Does not depend on `MAVEN_REMOTE_TOKEN`.
 
 Run it alone with `./gradlew cyclonedxDirectBom`.
+
+When applied on the root project (with or without the `java` plugin), `build` also runs
+`cyclonedxBom`, which merges the root and every subproject into a single deduplicated SBOM at
+`build/reports/cyclonedx/bom.json`. The `base` plugin is applied on the root to provide the
+`build` task, and every subproject's SBOM stays scoped to `runtimeClasspath`, even in subprojects
+that don't apply this plugin.
