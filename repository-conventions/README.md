@@ -1,7 +1,7 @@
 # repository-conventions
 
 Routes dependency resolution through Kestra's GCP Artifact Registry Maven proxy, ahead of Maven
-Central.
+Central, and embeds a CycloneDX SBOM of the runtime classpath in the jar.
 
 **Problem**: parallel multi-module CI builds hitting Maven Central directly can trip its rate
 limiting (HTTP 429).
@@ -22,4 +22,14 @@ plugins {
 }
 ```
 
-No configuration surface; behaviour is entirely driven by `MAVEN_REMOTE_TOKEN`.
+No configuration surface; the proxy is driven by `MAVEN_REMOTE_TOKEN`, the SBOM is always on.
+
+## SBOM
+
+On any project with the `java` plugin, applies the [CycloneDX Gradle plugin](https://github.com/CycloneDX/cyclonedx-gradle-plugin)
+and generates a CycloneDX JSON SBOM of the `runtimeClasspath` only (no test or compile-only
+dependencies) at `build/sbom/java.json`. It runs after compilation and is embedded in the `jar`
+(and `shadowJar` when `com.gradleup.shadow` is applied) as `META-INF/sbom/java.json`, so every
+`build` / `assemble` produces it. Does not depend on `MAVEN_REMOTE_TOKEN`.
+
+Run it alone with `./gradlew cyclonedxDirectBom`.

@@ -1,7 +1,10 @@
 package io.kestra.gradle
 
+import org.cyclonedx.gradle.CyclonedxDirectTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.RegularFile
+import org.gradle.jvm.tasks.Jar
 
 class RepositoryConventionsPlugin implements Plugin<Project> {
 
@@ -9,6 +12,11 @@ class RepositoryConventionsPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
+        configureMavenRemote(project)
+        configureSbom(project)
+    }
+
+    private static void configureMavenRemote(Project project) {
         def token = System.getenv("MAVEN_REMOTE_TOKEN")
         if (!token) {
             return
@@ -25,6 +33,30 @@ class RepositoryConventionsPlugin implements Plugin<Project> {
             }
             project.repositories.remove(repo)
             project.repositories.addFirst(repo)
+        }
+    }
+
+    private static void configureSbom(Project project) {
+        project.plugins.withId("java") {
+            project.pluginManager.apply("org.cyclonedx.bom")
+
+            def sbom = project.tasks.named("cyclonedxDirectBom", CyclonedxDirectTask) { task ->
+                task.includeConfigs.set(["runtimeClasspath"])
+                task.jsonOutput.set(project.layout.buildDirectory.file("sbom/java.json"))
+                task.xmlOutput.convention((RegularFile) null)
+                task.mustRunAfter("classes")
+            }
+
+            def embed = { Jar jar ->
+                jar.from(sbom.flatMap { it.jsonOutput }) {
+                    into "META-INF/sbom"
+                }
+            }
+            project.tasks.named("jar", Jar, embed)
+            // Kestra plugins publish a shadow jar, which doesn't reuse the jar task's content
+            project.plugins.withId("com.gradleup.shadow") {
+                project.tasks.named("shadowJar", Jar, embed)
+            }
         }
     }
 }

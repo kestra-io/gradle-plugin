@@ -6,7 +6,7 @@ Gradle plugins that help build Kestra plugins.
 |---|---|
 | [`io.kestra.gradle.spotless-conventions`](spotless-conventions/README.md) | Applies Spotless with Kestra formatting and git hooks. |
 | [`io.kestra.gradle.develocity-conventions`](develocity-conventions/README.md) | Configures Develocity build scans and remote build cache. |
-| [`io.kestra.gradle.repository-conventions`](repository-conventions/README.md) | Routes dependency resolution through Kestra's Maven proxy to avoid Maven Central rate limiting. |
+| [`io.kestra.gradle.repository-conventions`](repository-conventions/README.md) | Routes dependency resolution through Kestra's Maven proxy to avoid Maven Central rate limiting, and embeds a CycloneDX runtime SBOM in the jar. |
 | [`io.kestra.gradle.inject-bom-versions`](inject-bom-versions/README.md) | Injects missing versions for BOM-managed dependencies in the POM. |
 | [`io.kestra.gradle.plugin-doc-lint`](plugin-doc-lint/README.md) | Enforces plugin documentation completeness at build time. |
 | [`io.kestra.gradle.test-scheduling`](test-scheduling/README.md) | Reserves worker slots for heavy test modules so they run first and light modules expand to all slots once the heavy ones finish. |
