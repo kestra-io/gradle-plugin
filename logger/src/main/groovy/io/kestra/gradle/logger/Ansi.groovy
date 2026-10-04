@@ -37,7 +37,9 @@ class Ansi {
     static boolean colorsEnabled(boolean requested) {
         if (!requested) return false
         if (noColorOverride != null) return !noColorOverride
-        return System.getenv('NO_COLOR') == null
+        if (System.getenv('NO_COLOR') != null) return false
+        // IntelliJ's Build/Test tool windows don't render ANSI; they show raw escape codes.
+        return System.getProperty('idea.active') == null
     }
 
     static String wrap(String text, String code, boolean enabled) {

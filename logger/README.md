@@ -83,7 +83,7 @@ kestraLogger {
 | Block | Property | Default | Meaning |
 |---|---|---|---|
 | `task` | `enabled` | `true` | Print a line for every finished task |
-| `task` | `colors` | `true` | Auto-disabled when `NO_COLOR` is set |
+| `task` | `colors` | `true` | Auto-disabled when `NO_COLOR` is set or when run from IntelliJ (`idea.active`) |
 | `task` | `skipOutcomes` | `[NO-SOURCE]` | Outcomes not worth a line |
 | `test` | `slowThreshold` | `2000` | ms at/above which a duration renders red; half renders yellow |
 | `test` | `showPassedStandardStreams` | `false` | Passing tests are always one line regardless |
