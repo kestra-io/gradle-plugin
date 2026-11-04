@@ -34,6 +34,24 @@ dependencies) at `build/sbom/java.json`. It runs after compilation and is embedd
 
 Run it alone with `./gradlew cyclonedxDirectBom`.
 
+The SBOM lists what the jar bundles and nothing else:
+
+- The `type=pom` components, the BOMs imported through a platform such as `io.kestra:platform`, are removed.
+  They only constrain versions. A component that depended on one is linked to that BOM's own dependencies.
+- No `serialNumber` is written. The other volatile field, `metadata.timestamp`, stays, so the jar is still
+  not reproducible: attest the jar you publish, do not rebuild it in between.
+- The `manufacturer` is Kestra Technology, and the build system URL comes from the GitHub Actions environment.
+
+On any project with the `maven-publish` plugin, the SBOM is added to every `MavenPublication` as a
+`<artifactId>-<version>-cyclonedx.json` artifact (classifier `cyclonedx`), so it is published, and signed, with the jar.
+The `jar` (and `shadowJar`) task also leaves a copy at `build/libs/<name>-<version>-cyclonedx.json`, which is where a
+release step that uploads `build/libs` picks it up. A build script that already adds a `cyclonedx` artifact to a
+publication must drop it when it upgrades to this version, since Gradle rejects two artifacts with the same
+classifier and extension.
+
+When applied on the root project, every subproject gets the same treatment (SBOM, embedding, publication
+artifact), whether or not it applies this plugin itself.
+
 When applied on the root project (with or without the `java` plugin), `build` also runs
 `cyclonedxBom`, which merges the root and every subproject into a single deduplicated SBOM at
 `build/reports/cyclonedx/bom.json`. The `base` plugin is applied on the root to provide the
