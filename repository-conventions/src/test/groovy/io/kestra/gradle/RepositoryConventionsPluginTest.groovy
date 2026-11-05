@@ -126,4 +126,55 @@ class RepositoryConventionsPluginTest {
                 .build()
         assertFalse(result.output.contains('cyclonedxDirectBom'))
     }
+
+    @Test
+    void 'tests write allure results and the adapter version is pinned'() {
+        testProjectDir.resolve('src/test/java').toFile().mkdirs()
+        testProjectDir.resolve('src/test/java/SampleTest.java').toFile().text = """
+            import org.junit.jupiter.api.Test;
+            class SampleTest {
+                @Test void ok() {}
+            }
+        """
+        buildFile.text = """
+            plugins {
+                id 'java'
+                id 'io.kestra.gradle.repository-conventions'
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            dependencies {
+                testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+                testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.9.3'
+            }
+
+            test {
+                useJUnitPlatform()
+            }
+
+            tasks.register('allureJavaVersion') {
+                def version = allure.adapter.allureJavaVersion
+                def outputs = tasks.named('test').get().outputs.files
+                doLast {
+                    println "ALLURE_JAVA_VERSION=" + version.get()
+                    println "TEST_OUTPUTS=" + outputs.files*.path
+                }
+            }
+        """
+        def result = GradleRunner.create()
+                .withProjectDir(testProjectDir.toFile())
+                .withPluginClasspath()
+                .withArguments('test', 'allureJavaVersion')
+                .build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(':test').outcome)
+        assertTrue(result.output.contains('ALLURE_JAVA_VERSION=3.1.1'), result.output)
+
+        assertTrue(result.output.contains('build/allure-results'), 'allure-results is not a test task output: ' + result.output)
+
+        def results = testProjectDir.resolve('build/allure-results').toFile()
+        assertTrue(results.listFiles().any { it.name.endsWith('-result.json') }, "allure-results: ${results.list()}")
+    }
 }

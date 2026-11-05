@@ -10,10 +10,36 @@ class RepositoryConventionsPlugin implements Plugin<Project> {
 
     private static final String GCP_MAVEN_REMOTE_URL = "https://europe-maven.pkg.dev/kestra-host/maven-remote"
 
+    private static final String ALLURE_JAVA_VERSION = "3.1.1"
+    private static final String ALLURE_CONFIGURED = "kestraAllureConfigured"
+
     @Override
     void apply(Project project) {
         configureMavenRemote(project)
         configureSbom(project)
+        configureAllure(project)
+    }
+
+    private static void configureAllure(Project project) {
+        if (project == project.rootProject) {
+            project.subprojects { sub ->
+                configureProjectAllure(sub)
+            }
+        }
+        configureProjectAllure(project)
+    }
+
+    private static void configureProjectAllure(Project project) {
+        // A subproject can be configured from the root and apply this plugin itself
+        if (project.extensions.extraProperties.has(ALLURE_CONFIGURED)) {
+            return
+        }
+        project.extensions.extraProperties.set(ALLURE_CONFIGURED, true)
+
+        project.plugins.withId("java") {
+            project.pluginManager.apply("io.qameta.allure-adapter")
+            project.extensions.getByName("allure").adapter.allureJavaVersion.set(ALLURE_JAVA_VERSION)
+        }
     }
 
     private static void configureMavenRemote(Project project) {

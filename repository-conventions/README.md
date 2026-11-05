@@ -1,7 +1,7 @@
 # repository-conventions
 
 Routes dependency resolution through Kestra's GCP Artifact Registry Maven proxy, ahead of Maven
-Central, and embeds a CycloneDX SBOM of the runtime classpath in the jar.
+Central, and embeds a CycloneDX SBOM of the runtime classpath in the jar. It also wires the Allure adapter into tests.
 
 **Problem**: parallel multi-module CI builds hitting Maven Central directly can trip its rate
 limiting (HTTP 429).
@@ -39,3 +39,12 @@ When applied on the root project (with or without the `java` plugin), `build` al
 `build/reports/cyclonedx/bom.json`. The `base` plugin is applied on the root to provide the
 `build` task, and every subproject's SBOM stays scoped to `runtimeClasspath`, even in subprojects
 that don't apply this plugin.
+
+## Allure
+
+On any project with the `java` plugin, applies `io.qameta.allure-adapter` and pins the allure-java version
+(`3.1.1`), so the adapter, the AspectJ agent and the JUnit 5 listener are added to `test` and raw results go
+to `build/allure-results`, tracked as a task output so a build-cache hit still restores them. The Allure
+version is owned by this plugin: do not declare `io.qameta.allure:allure-*` test dependencies or an Allure BOM in the build, and drop any
+`allure.properties` that only sets the results directory. The report plugin is not applied, so no Node.js runtime
+is provisioned. The Allure Gradle plugin requires Gradle 8.11 or newer. When applied on the root project, every subproject is configured the same way.
